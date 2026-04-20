@@ -1,11 +1,23 @@
 import { NextRequest } from "next/server";
 import { parseCccdFromSides } from "@/app/lib/parseCard";
+import sharp from "sharp";
 
 // Keep Node.js runtime so tesseract.js workers run correctly
 export const runtime = "nodejs";
 
 // Allow larger uploads (CCCD photos can be several MB)
 export const maxDuration = 60;
+
+async function preprocessForOcr(buffer: Buffer) {
+  return sharp(buffer)
+    .rotate() // honor EXIF orientation from phone photos
+    .grayscale()
+    .normalize()
+    .sharpen()
+    .resize({ width: 2000, withoutEnlargement: true })
+    .png()
+    .toBuffer();
+}
 
 export async function POST(request: NextRequest) {
   let formData: FormData;
@@ -39,11 +51,16 @@ export async function POST(request: NextRequest) {
     const frontBuffer = Buffer.from(await front.arrayBuffer());
     const backBuffer = Buffer.from(await back.arrayBuffer());
 
-    const frontResult = await Tesseract.recognize(frontBuffer, "vie+eng", {
+    const [frontEnhanced, backEnhanced] = await Promise.all([
+      preprocessForOcr(frontBuffer),
+      preprocessForOcr(backBuffer),
+    ]);
+
+    const frontResult = await Tesseract.recognize(frontEnhanced, "vie+eng", {
       // Suppress verbose logging in production
       logger: () => {},
     });
-    const backResult = await Tesseract.recognize(backBuffer, "vie+eng", {
+    const backResult = await Tesseract.recognize(backEnhanced, "vie+eng", {
       logger: () => {},
     });
 

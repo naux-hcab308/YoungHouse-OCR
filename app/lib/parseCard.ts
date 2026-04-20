@@ -1,5 +1,14 @@
 import type { CccdData } from "../types";
 
+function stripDiacritics(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+}
+
 /**
  * Parse raw OCR text from a Vietnamese Căn cước công dân (CCCD) image.
  * Returns best-effort extracted fields; all fields are optional since OCR
@@ -118,6 +127,56 @@ function normalizeLines(raw: string): string[] {
     .filter(Boolean);
 }
 
+function titleCaseNameFromMrz(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function parseMrz(rawFront: string, rawBack: string): Partial<CccdData> {
+  const raw = `${rawFront}\n${rawBack}`.replace(/\s+/g, " ").toUpperCase();
+  const fromMrz: Partial<CccdData> = {};
+
+  // Common VN ID card MRZ shape:
+  // IDVNM<12-digit-id><check> ...
+  const idMatch = raw.match(/IDVNM(\d{12})/);
+  if (idMatch) {
+    fromMrz.soCanCuoc = idMatch[1];
+  }
+
+  // DOB + sex + expiry segment, e.g. 0503165F3003161
+  const dseMatch = raw.match(/(\d{6})(\d)([MF])(\d{6})/);
+  if (dseMatch) {
+    const yy = dseMatch[1].slice(0, 2);
+    const mm = dseMatch[1].slice(2, 4);
+    const dd = dseMatch[1].slice(4, 6);
+    const fullYear = Number(yy) > 30 ? `19${yy}` : `20${yy}`;
+    fromMrz.ngaySinh = `${dd}/${mm}/${fullYear}`;
+    fromMrz.gioiTinh = dseMatch[3] === "F" ? "Nữ" : "Nam";
+
+    const expYy = dseMatch[4].slice(0, 2);
+    const expMm = dseMatch[4].slice(2, 4);
+    const expDd = dseMatch[4].slice(4, 6);
+    const expYear = Number(expYy) > 30 ? `19${expYy}` : `20${expYy}`;
+    fromMrz.ngayHetHan = `${expDd}/${expMm}/${expYear}`;
+  }
+
+  // Name row usually looks like DAO<<THANH<VAN<<<<
+  const nameMatch = raw.match(/([A-Z]{2,})<<([A-Z<]{2,})<*</);
+  if (nameMatch) {
+    const surname = nameMatch[1].replace(/</g, " ").trim();
+    const given = nameMatch[2].replace(/</g, " ").trim();
+    const noAccentName = `${surname} ${given}`.replace(/\s+/g, " ").trim();
+    if (noAccentName.length >= 4) {
+      fromMrz.hoTen = titleCaseNameFromMrz(noAccentName);
+    }
+  }
+
+  return fromMrz;
+}
+
 function pickBest<T extends keyof CccdData>(
   target: Partial<CccdData>,
   key: T,
@@ -142,23 +201,29 @@ export function parseCccdFromSides(
 ): Partial<CccdData> {
   const front = parseCccdText(rawFront);
   const back = parseCccdText(rawBack);
+  const mrz = parseMrz(rawFront, rawBack);
   const merged: Partial<CccdData> = {};
 
-  pickBest(merged, "soCanCuoc", front, back);
-  pickBest(merged, "hoTen", front, back);
-  pickBest(merged, "ngaySinh", front, back);
-  pickBest(merged, "gioiTinh", front, back);
+  // MRZ is often more stable than OCR text blocks for key identity fields.
+  pickBest(merged, "soCanCuoc", mrz, front, back);
+  pickBest(merged, "hoTen", front, mrz, back);
+  pickBest(merged, "ngaySinh", mrz, front, back);
+  pickBest(merged, "gioiTinh", mrz, front, back);
   pickBest(merged, "quocTich", front, back);
   pickBest(merged, "queQuan", front, back);
   pickBest(merged, "thuongTru", front, back);
-  pickBest(merged, "ngayHetHan", front, back);
+  pickBest(merged, "ngayHetHan", mrz, front, back);
 
   const allLines = [...normalizeLines(rawFront), ...normalizeLines(rawBack)];
   const allText = `${rawFront}\n${rawBack}`;
+  const normalizedLines = allLines.map((line) => stripDiacritics(line));
 
   // Date of issue / Cấp ngày
-  const issueLabelIndex = allLines.findIndex((line) =>
-    /ng[aà]y,\s*th[aá]ng,\s*n[aă]m\s*c[ấa]p|date\s+of\s+issue/i.test(line)
+  const issueLabelIndex = normalizedLines.findIndex(
+    (line) =>
+      line.includes("ngay, thang, nam cap") ||
+      line.includes("ngay thang nam cap") ||
+      line.includes("date of issue")
   );
   if (issueLabelIndex >= 0) {
     const withLabelDate = allLines[issueLabelIndex].match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
