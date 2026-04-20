@@ -9,7 +9,6 @@
  * the original parsed data is returned unchanged.
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { CccdData } from "../types";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -53,6 +52,7 @@ export async function normalizeWithAi(
   }
 
   try {
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const model = genAI.getGenerativeModel(
       {

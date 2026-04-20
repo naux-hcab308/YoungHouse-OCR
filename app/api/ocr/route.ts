@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { TextractClient, DetectDocumentTextCommand } from "@aws-sdk/client-textract";
 import { parseCccdFromSides } from "@/app/lib/parseCard";
 import { normalizeWithAi } from "@/app/lib/normalizeWithAi";
 import sharp from "sharp";
@@ -8,14 +7,6 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 // ── AWS Textract client ────────────────────────────────────────────────────
-const textract = new TextractClient({
-  region: process.env.AWS_REGION ?? "us-east-1",
-  credentials: {
-    accessKeyId:     process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
-
 // ── Image prep ─────────────────────────────────────────────────────────────
 // Textract handles denoising internally — just fix orientation and cap size.
 async function prepareForTextract(buffer: Buffer): Promise<Buffer> {
@@ -28,6 +19,17 @@ async function prepareForTextract(buffer: Buffer): Promise<Buffer> {
 
 // ── Textract OCR ───────────────────────────────────────────────────────────
 async function runTextract(imageBuffer: Buffer): Promise<string> {
+  const { TextractClient, DetectDocumentTextCommand } = await import(
+    "@aws-sdk/client-textract"
+  );
+  const textract = new TextractClient({
+    region: process.env.AWS_REGION ?? "us-east-1",
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
+  });
+
   const command = new DetectDocumentTextCommand({
     Document: { Bytes: imageBuffer },
   });
