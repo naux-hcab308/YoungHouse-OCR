@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { parseCccdText } from "@/app/lib/parseCard";
+import { parseCccdFromSides } from "@/app/lib/parseCard";
 
 // Keep Node.js runtime so tesseract.js workers run correctly
 export const runtime = "nodejs";
@@ -15,34 +15,43 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid form data" }, { status: 400 });
   }
 
-  const file = formData.get("image") as File | null;
-  if (!file) {
-    return Response.json({ error: "Không tìm thấy ảnh" }, { status: 400 });
-  }
+  const front = formData.get("imageFront") as File | null;
+  const back = formData.get("imageBack") as File | null;
+  const cardType = formData.get("cardType");
 
-  if (!file.type.startsWith("image/")) {
+  if (!front || !back) {
+    return Response.json({ error: "Vui lòng chọn đủ ảnh mặt trước và mặt sau CCCD." }, { status: 400 });
+  }
+  if (!front.type.startsWith("image/") || !back.type.startsWith("image/")) {
     return Response.json(
       { error: "File không hợp lệ. Vui lòng upload ảnh (JPEG/PNG/WEBP)." },
       { status: 400 }
     );
+  }
+  if (cardType !== "old" && cardType !== "new") {
+    return Response.json({ error: "Loại CCCD không hợp lệ." }, { status: 400 });
   }
 
   try {
     // Dynamic import keeps this out of the Edge runtime bundle
     const Tesseract = (await import("tesseract.js")).default;
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const frontBuffer = Buffer.from(await front.arrayBuffer());
+    const backBuffer = Buffer.from(await back.arrayBuffer());
 
-    const {
-      data: { text },
-    } = await Tesseract.recognize(buffer, "vie+eng", {
+    const frontResult = await Tesseract.recognize(frontBuffer, "vie+eng", {
       // Suppress verbose logging in production
       logger: () => {},
     });
+    const backResult = await Tesseract.recognize(backBuffer, "vie+eng", {
+      logger: () => {},
+    });
 
-    const parsed = parseCccdText(text);
+    const frontText = frontResult.data.text;
+    const backText = backResult.data.text;
+    const parsed = parseCccdFromSides(frontText, backText, cardType);
 
-    return Response.json({ rawText: text, parsed });
+    return Response.json({ rawTextFront: frontText, rawTextBack: backText, parsed });
   } catch (err) {
     console.error("[OCR] error:", err);
     return Response.json(

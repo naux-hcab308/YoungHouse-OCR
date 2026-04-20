@@ -107,3 +107,93 @@ export function parseCccdText(raw: string): Partial<CccdData> {
 
   return result;
 }
+
+type CardType = "old" | "new";
+
+function normalizeLines(raw: string): string[] {
+  return raw
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
+function pickBest<T extends keyof CccdData>(
+  target: Partial<CccdData>,
+  key: T,
+  ...candidates: Array<Partial<CccdData>>
+) {
+  for (const candidate of candidates) {
+    const value = candidate[key];
+    if (typeof value === "string" && value.trim()) {
+      target[key] = value.trim();
+      return;
+    }
+  }
+}
+
+/**
+ * Parse data from both sides of CCCD and merge best fields for old/new form.
+ */
+export function parseCccdFromSides(
+  rawFront: string,
+  rawBack: string,
+  cardType: CardType
+): Partial<CccdData> {
+  const front = parseCccdText(rawFront);
+  const back = parseCccdText(rawBack);
+  const merged: Partial<CccdData> = {};
+
+  pickBest(merged, "soCanCuoc", front, back);
+  pickBest(merged, "hoTen", front, back);
+  pickBest(merged, "ngaySinh", front, back);
+  pickBest(merged, "gioiTinh", front, back);
+  pickBest(merged, "quocTich", front, back);
+  pickBest(merged, "queQuan", front, back);
+  pickBest(merged, "thuongTru", front, back);
+  pickBest(merged, "ngayHetHan", front, back);
+
+  const allLines = [...normalizeLines(rawFront), ...normalizeLines(rawBack)];
+  const allText = `${rawFront}\n${rawBack}`;
+
+  // Date of issue / Cấp ngày
+  const issueLabelIndex = allLines.findIndex((line) =>
+    /ng[aà]y,\s*th[aá]ng,\s*n[aă]m\s*c[ấa]p|date\s+of\s+issue/i.test(line)
+  );
+  if (issueLabelIndex >= 0) {
+    const withLabelDate = allLines[issueLabelIndex].match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
+    const nextLineDate = allLines[issueLabelIndex + 1]?.match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
+    merged.capNgay = withLabelDate ?? nextLineDate ?? merged.capNgay;
+  }
+  if (!merged.capNgay) {
+    const dates = allText.match(/\d{2}\/\d{2}\/\d{4}/g) ?? [];
+    if (dates.length >= 2) {
+      // Usually one of the middle dates is issue date, keep best effort.
+      merged.capNgay = dates[Math.max(1, dates.length - 2)];
+    }
+  }
+
+  // Issued by / Cấp tại
+  if (!merged.capTai) {
+    if (cardType === "new") {
+      const boCongAnLine = allLines.find((line) =>
+        /b[oộ]\s*c[oô]ng\s*an|ministry\s+of\s+public\s+security/i.test(line)
+      );
+      if (boCongAnLine) {
+        merged.capTai = "Bộ Công An";
+      }
+    }
+    if (!merged.capTai) {
+      const issuingLine = allLines.find((line) =>
+        /c[uụ]c\s+tr[uư][oơ]ng\s+c[uụ]c\s+c[aả]nh\s+s[aá]t|director\s+general\s+of\s+the\s+police/i.test(
+          line
+        )
+      );
+      if (issuingLine) {
+        merged.capTai = "Cục Cảnh sát QLHC về TTXH";
+      }
+    }
+  }
+
+  return merged;
+}

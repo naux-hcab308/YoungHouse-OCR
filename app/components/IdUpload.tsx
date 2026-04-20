@@ -8,42 +8,56 @@ interface Props {
 }
 
 export default function IdUpload({ onExtracted }: Props) {
-  const [preview, setPreview] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [dragging, setDragging] = useState(false);
+  const [cardType, setCardType] = useState<"old" | "new">("new");
+  const [frontPreview, setFrontPreview] = useState<string | null>(null);
+  const [backPreview, setBackPreview] = useState<string | null>(null);
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
+  const [draggingFront, setDraggingFront] = useState(false);
+  const [draggingBack, setDraggingBack] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMsg, setStatusMsg] = useState("");
   const [error, setError] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const frontInputRef = useRef<HTMLInputElement>(null);
+  const backInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = useCallback((f: File) => {
+  const handleFile = useCallback((f: File, side: "front" | "back") => {
     if (!f.type.startsWith("image/")) {
       setError("Vui lòng chọn file ảnh (JPEG, PNG, WEBP, ...)");
       return;
     }
     setError("");
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+    if (side === "front") {
+      setFrontFile(f);
+      setFrontPreview(URL.createObjectURL(f));
+    } else {
+      setBackFile(f);
+      setBackPreview(URL.createObjectURL(f));
+    }
   }, []);
 
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    (e: React.DragEvent, side: "front" | "back") => {
       e.preventDefault();
-      setDragging(false);
+      if (side === "front") {
+        setDraggingFront(false);
+      } else {
+        setDraggingBack(false);
+      }
       const f = e.dataTransfer.files[0];
-      if (f) handleFile(f);
+      if (f) handleFile(f, side);
     },
     [handleFile]
   );
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, side: "front" | "back") => {
     const f = e.target.files?.[0];
-    if (f) handleFile(f);
+    if (f) handleFile(f, side);
   };
 
   const runOcr = async () => {
-    if (!file) return;
+    if (!frontFile || !backFile) return;
     setProcessing(true);
     setError("");
     setProgress(0);
@@ -59,7 +73,9 @@ export default function IdUpload({ onExtracted }: Props) {
       }, 800);
 
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("imageFront", frontFile);
+      formData.append("imageBack", backFile);
+      formData.append("cardType", cardType);
 
       setStatusMsg("Đang nhận dạng ký tự (OCR)...");
       const res = await fetch("/api/ocr", { method: "POST", body: formData });
@@ -72,7 +88,7 @@ export default function IdUpload({ onExtracted }: Props) {
 
       setProgress(95);
       setStatusMsg("Phân tích dữ liệu...");
-      const { parsed } = await res.json() as { rawText: string; parsed: Partial<CccdData> };
+      const { parsed } = await res.json() as { rawTextFront: string; rawTextBack: string; parsed: Partial<CccdData> };
 
       setProgress(100);
       setStatusMsg("Hoàn tất!");
@@ -89,54 +105,65 @@ export default function IdUpload({ onExtracted }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-800 mb-1">Tải ảnh Căn cước công dân</h2>
-        <p className="text-sm text-gray-500">Chụp mặt trước CCCD rõ nét, đủ ánh sáng để đạt kết quả tốt nhất.</p>
+        <h2 className="text-xl font-semibold text-gray-800 mb-1">Quét 2 mặt Căn cước công dân</h2>
+        <p className="text-sm text-gray-500">Chọn loại CCCD và tải đủ ảnh mặt trước + mặt sau để OCR chính xác hơn.</p>
       </div>
 
-      {/* Drop zone */}
-      <div
-        className={`relative border-2 border-dashed rounded-2xl transition-colors cursor-pointer ${
-          dragging ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/40"
-        }`}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
-        onClick={() => !processing && inputRef.current?.click()}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleInputChange}
-        />
+      {/* CCCD type selector */}
+      <div className="space-y-2">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Loại CCCD</p>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setCardType("old")}
+            className={`h-11 rounded-xl border text-sm font-semibold transition-colors ${
+              cardType === "old"
+                ? "border-blue-600 bg-blue-50 text-blue-700"
+                : "border-gray-300 bg-white text-gray-700 hover:border-blue-300"
+            }`}
+          >
+            CCCD cũ
+          </button>
+          <button
+            type="button"
+            onClick={() => setCardType("new")}
+            className={`h-11 rounded-xl border text-sm font-semibold transition-colors ${
+              cardType === "new"
+                ? "border-blue-600 bg-blue-50 text-blue-700"
+                : "border-gray-300 bg-white text-gray-700 hover:border-blue-300"
+            }`}
+          >
+            CCCD mới
+          </button>
+        </div>
+      </div>
 
-        {preview ? (
-          <div className="p-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={preview}
-              alt="Ảnh CCCD"
-              className="max-h-64 mx-auto rounded-xl object-contain shadow"
-            />
-            {!processing && (
-              <p className="text-center mt-3 text-xs text-gray-400">
-                Nhấn để thay đổi ảnh
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-              <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-              </svg>
-            </div>
-            <p className="font-medium text-gray-700">Kéo thả ảnh vào đây</p>
-            <p className="text-sm text-gray-400 mt-1">hoặc nhấn để chọn file</p>
-            <p className="text-xs text-gray-400 mt-3">Hỗ trợ: JPEG, PNG, WEBP, HEIC</p>
-          </div>
-        )}
+      {/* Front and back upload */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UploadCard
+          title="Mặt trước"
+          preview={frontPreview}
+          dragging={draggingFront}
+          processing={processing}
+          inputRef={frontInputRef}
+          onDragOver={() => setDraggingFront(true)}
+          onDragLeave={() => setDraggingFront(false)}
+          onDrop={(e) => handleDrop(e, "front")}
+          onClick={() => !processing && frontInputRef.current?.click()}
+          onChange={(e) => handleInputChange(e, "front")}
+        />
+        <UploadCard
+          title="Mặt sau"
+          preview={backPreview}
+          dragging={draggingBack}
+          processing={processing}
+          inputRef={backInputRef}
+          onDragOver={() => setDraggingBack(true)}
+          onDragLeave={() => setDraggingBack(false)}
+          onDrop={(e) => handleDrop(e, "back")}
+          onClick={() => !processing && backInputRef.current?.click()}
+          onChange={(e) => handleInputChange(e, "back")}
+        />
       </div>
 
       {/* Progress bar */}
@@ -171,7 +198,7 @@ export default function IdUpload({ onExtracted }: Props) {
       {/* Action button */}
       <button
         onClick={runOcr}
-        disabled={!file || processing}
+        disabled={!frontFile || !backFile || processing}
         className="w-full h-12 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
         {processing ? (
@@ -191,6 +218,83 @@ export default function IdUpload({ onExtracted }: Props) {
           </>
         )}
       </button>
+    </div>
+  );
+}
+
+function UploadCard({
+  title,
+  preview,
+  dragging,
+  processing,
+  inputRef,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onClick,
+  onChange,
+}: {
+  title: string;
+  preview: string | null;
+  dragging: boolean;
+  processing: boolean;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent) => void;
+  onClick: () => void;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{title}</p>
+      <div
+        className={`relative border-2 border-dashed rounded-2xl transition-colors cursor-pointer ${
+          dragging
+            ? "border-blue-500 bg-blue-50"
+            : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/40"
+        }`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          onDragOver();
+        }}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        onClick={onClick}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onChange}
+        />
+        {preview ? (
+          <div className="p-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={preview}
+              alt={title}
+              className="h-48 w-full rounded-xl object-contain shadow"
+            />
+            {!processing && (
+              <p className="text-center mt-2 text-xs text-gray-400">
+                Nhấn để thay đổi ảnh
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+            </div>
+            <p className="font-medium text-gray-700 text-sm">Kéo thả ảnh vào đây</p>
+            <p className="text-xs text-gray-400 mt-1">hoặc nhấn để chọn file</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
