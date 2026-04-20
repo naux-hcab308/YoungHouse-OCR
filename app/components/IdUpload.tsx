@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import type { CccdData } from "../types";
 
 interface Props {
-  onExtracted: (data: Partial<CccdData>) => void;
+  onExtracted: (data: Partial<CccdData>, raw: { front: string; back: string }) => void;
 }
 
 export default function IdUpload({ onExtracted }: Props) {
@@ -86,13 +86,17 @@ export default function IdUpload({ onExtracted }: Props) {
         throw new Error(data.error ?? "Lỗi không xác định");
       }
 
-      setProgress(95);
-      setStatusMsg("Phân tích dữ liệu...");
-      const { parsed } = await res.json() as { rawTextFront: string; rawTextBack: string; parsed: Partial<CccdData> };
+      setProgress(90);
+      setStatusMsg("AI đang chuẩn hoá dữ liệu...");
+      const { parsed, rawTextFront, rawTextBack } = await res.json() as {
+        rawTextFront: string;
+        rawTextBack: string;
+        parsed: Partial<CccdData>;
+      };
 
       setProgress(100);
       setStatusMsg("Hoàn tất!");
-      setTimeout(() => onExtracted(parsed), 400);
+      setTimeout(() => onExtracted(parsed, { front: rawTextFront ?? "", back: rawTextBack ?? "" }), 400);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Có lỗi xảy ra khi xử lý ảnh.");
       setProgress(0);

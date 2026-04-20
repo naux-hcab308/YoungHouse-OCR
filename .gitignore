@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# Tesseract language data (large binary, not needed in repo)
+*.traineddata
+
 # debug
 npm-debug.log*
 yarn-debug.log*

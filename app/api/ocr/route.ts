@@ -1,24 +1,46 @@
 import { NextRequest } from "next/server";
+import { TextractClient, DetectDocumentTextCommand } from "@aws-sdk/client-textract";
 import { parseCccdFromSides } from "@/app/lib/parseCard";
+import { normalizeWithAi } from "@/app/lib/normalizeWithAi";
 import sharp from "sharp";
 
-// Keep Node.js runtime so tesseract.js workers run correctly
 export const runtime = "nodejs";
-
-// Allow larger uploads (CCCD photos can be several MB)
 export const maxDuration = 60;
 
-async function preprocessForOcr(buffer: Buffer) {
+// ── AWS Textract client ────────────────────────────────────────────────────
+const textract = new TextractClient({
+  region: process.env.AWS_REGION ?? "us-east-1",
+  credentials: {
+    accessKeyId:     process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
+// ── Image prep ─────────────────────────────────────────────────────────────
+// Textract handles denoising internally — just fix orientation and cap size.
+async function prepareForTextract(buffer: Buffer): Promise<Buffer> {
   return sharp(buffer)
-    .rotate() // honor EXIF orientation from phone photos
-    .grayscale()
-    .normalize()
-    .sharpen()
+    .rotate()
     .resize({ width: 2000, withoutEnlargement: true })
-    .png()
+    .jpeg({ quality: 90 })
     .toBuffer();
 }
 
+// ── Textract OCR ───────────────────────────────────────────────────────────
+async function runTextract(imageBuffer: Buffer): Promise<string> {
+  const command = new DetectDocumentTextCommand({
+    Document: { Bytes: imageBuffer },
+  });
+
+  const response = await textract.send(command);
+
+  return (response.Blocks ?? [])
+    .filter((b) => b.BlockType === "LINE" && b.Text)
+    .map((b) => b.Text as string)
+    .join("\n");
+}
+
+// ── Route handler ──────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   let formData: FormData;
   try {
@@ -27,12 +49,15 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid form data" }, { status: 400 });
   }
 
-  const front = formData.get("imageFront") as File | null;
-  const back = formData.get("imageBack") as File | null;
+  const front    = formData.get("imageFront") as File | null;
+  const back     = formData.get("imageBack")  as File | null;
   const cardType = formData.get("cardType");
 
   if (!front || !back) {
-    return Response.json({ error: "Vui lòng chọn đủ ảnh mặt trước và mặt sau CCCD." }, { status: 400 });
+    return Response.json(
+      { error: "Vui lòng chọn đủ ảnh mặt trước và mặt sau CCCD." },
+      { status: 400 }
+    );
   }
   if (!front.type.startsWith("image/") || !back.type.startsWith("image/")) {
     return Response.json(
@@ -45,32 +70,22 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Dynamic import keeps this out of the Edge runtime bundle
-    const Tesseract = (await import("tesseract.js")).default;
-
-    const frontBuffer = Buffer.from(await front.arrayBuffer());
-    const backBuffer = Buffer.from(await back.arrayBuffer());
-
-    const [frontEnhanced, backEnhanced] = await Promise.all([
-      preprocessForOcr(frontBuffer),
-      preprocessForOcr(backBuffer),
+    const [frontBuffer, backBuffer] = await Promise.all([
+      front.arrayBuffer().then((ab) => prepareForTextract(Buffer.from(ab))),
+      back.arrayBuffer().then((ab)  => prepareForTextract(Buffer.from(ab))),
     ]);
 
-    const frontResult = await Tesseract.recognize(frontEnhanced, "vie+eng", {
-      // Suppress verbose logging in production
-      logger: () => {},
-    });
-    const backResult = await Tesseract.recognize(backEnhanced, "vie+eng", {
-      logger: () => {},
-    });
+    const [frontText, backText] = await Promise.all([
+      runTextract(frontBuffer),
+      runTextract(backBuffer),
+    ]);
 
-    const frontText = frontResult.data.text;
-    const backText = backResult.data.text;
-    const parsed = parseCccdFromSides(frontText, backText, cardType);
+    const parsed  = parseCccdFromSides(frontText, backText, cardType);
+    const normalized = await normalizeWithAi(parsed, frontText, backText);
 
-    return Response.json({ rawTextFront: frontText, rawTextBack: backText, parsed });
+    return Response.json({ rawTextFront: frontText, rawTextBack: backText, parsed: normalized });
   } catch (err) {
-    console.error("[OCR] error:", err);
+    console.error("[Textract] error:", err);
     return Response.json(
       { error: "Không thể xử lý ảnh. Vui lòng thử lại với ảnh rõ hơn." },
       { status: 500 }

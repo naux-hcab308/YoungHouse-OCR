@@ -83,7 +83,7 @@ function Field({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+        className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-black placeholder:text-black focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
       />
       {hint && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
     </div>
@@ -281,7 +281,7 @@ export default function ContractForm({ cccd, onBack }: Props) {
                       value={c[f.key]}
                       placeholder={f.ph}
                       onChange={(e) => updateCompanion(idx, f.key, e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-black placeholder:text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 ))}

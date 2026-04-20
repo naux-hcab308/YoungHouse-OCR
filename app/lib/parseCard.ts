@@ -1,4 +1,5 @@
 import type { CccdData } from "../types";
+import type { RegionOcrResult } from "./regionOcr";
 
 function stripDiacritics(input: string): string {
   return input
@@ -11,105 +12,143 @@ function stripDiacritics(input: string): string {
 
 /**
  * Parse raw OCR text from a Vietnamese Căn cước công dân (CCCD) image.
- * Returns best-effort extracted fields; all fields are optional since OCR
- * accuracy varies with image quality.
+ *
+ * Strategy: normalise every line with stripDiacritics before label matching
+ * so the parser is immune to diacritic variants, casing differences, and
+ * minor OCR substitutions in label text.  Original lines are used only for
+ * extracting actual field values.
  */
 export function parseCccdText(raw: string): Partial<CccdData> {
   const result: Partial<CccdData> = {};
 
-  const text = raw.replace(/\r/g, "\n");
-  const lines = text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
+  const text  = raw.replace(/\r/g, "\n");
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  // Normalised counterparts used for label detection only
+  const norm  = lines.map(stripDiacritics);
 
-  // --- ID number: 12 consecutive digits ---
-  for (const line of lines) {
-    const m = line.match(/\b(\d{12})\b/);
-    if (m) {
-      result.soCanCuoc = m[1];
-      break;
-    }
-  }
+  // ── CCCD / ID number ──────────────────────────────────────────────────
+  // IMPORTANT: For Vietnamese CCCD the MRZ document-number field is a
+  // DIFFERENT code from the number printed on the card.
+  // The printed number always appears after the "Sô / No.:" label.
+  // We must NOT use the MRZ line (IDVNM...) as the source.
 
-  // --- Full name: line after "Họ và tên" / "Full name" keyword ---
-  for (let i = 0; i < lines.length; i++) {
-    if (/h[oọ]\s+v[àa]\s+t[eê]n|full\s+name/i.test(lines[i])) {
-      const stripped = lines[i]
-        .replace(/h[oọ]\s+v[àa]\s+t[eê]n\s*[:/]?\s*/i, "")
-        .replace(/full\s+name\s*[:/]?\s*/i, "")
-        .trim();
-      if (stripped.length > 2) {
-        result.hoTen = stripped;
-      } else if (i + 1 < lines.length) {
-        result.hoTen = lines[i + 1];
+  const digitOnly = (s: string) => s.replace(/[\s\-\.]/g, "");
+
+  // Priority 1: inline "No.:" or "Số:" pattern, e.g. "Sô / No.: 001204028543"
+  let cccdCandidate: string | undefined;
+  for (let i = 0; i < norm.length; i++) {
+    if (/no\s*\.?\s*:/.test(norm[i]) || /s[o0]\s*\/\s*no/.test(norm[i])) {
+      // Try to extract digits from the same line
+      const digits = digitOnly(lines[i]).match(/(\d{9,12})/g) ?? [];
+      const best = digits.find((d) => d.startsWith("0") && (d.length === 9 || d.length === 12));
+      if (best) {
+        cccdCandidate = best.length === 9 ? best : best.slice(0, 12);
+        break;
       }
+      // Value may be on the next line
+      if (lines[i + 1]) {
+        const compact = digitOnly(lines[i + 1]);
+        const m = compact.match(/(0\d{8,11})/);
+        if (m) { cccdCandidate = m[1].length < 12 ? m[1] : m[1].slice(0, 12); break; }
+      }
+    }
+  }
+
+  // Priority 2: standalone line that is exactly 9 or 12 digits starting with 0
+  // (exclude MRZ lines which contain letters)
+  if (!cccdCandidate) {
+    for (const line of lines) {
+      if (/[A-Z<]/.test(line)) continue;          // skip MRZ lines
+      const compact = digitOnly(line);
+      if (/^0\d{11}$/.test(compact)) { cccdCandidate = compact; break; }
+      if (/^0\d{8}$/.test(compact) && !cccdCandidate) cccdCandidate = compact;
+    }
+  }
+
+  if (cccdCandidate) result.soCanCuoc = cccdCandidate;
+
+  // ── Full name ──────────────────────────────────────────────────────────
+  for (let i = 0; i < norm.length; i++) {
+    if (/ho\s+va\s+ten|full\s*name/.test(norm[i])) {
+      // Value may be on the same line (after the label) or the next line
+      const sameLineValue = lines[i]
+        .replace(/h[oọ]\s+v[àa]\s+t[eê]n\s*[/\\|]?\s*full\s*name\s*[:/]?\s*/i, "")
+        .replace(/full\s*name\s*[:/]?\s*/i, "")
+        .trim();
+      result.hoTen = sameLineValue.length > 2 ? sameLineValue : lines[i + 1] ?? "";
       break;
     }
   }
 
-  // --- Dates (DD/MM/YYYY) ---
+  // ── Dates (DD/MM/YYYY) ────────────────────────────────────────────────
   const dates = text.match(/\d{2}\/\d{2}\/\d{4}/g) ?? [];
-  if (dates.length >= 1) result.ngaySinh = dates[0];
+  if (dates.length >= 1) result.ngaySinh  = dates[0];
   if (dates.length >= 2) result.ngayHetHan = dates[dates.length - 1];
 
-  // --- Gender ---
-  for (const line of lines) {
-    // Avoid false matches on lines containing names or addresses
-    if (/gi[oớ]i\s+t[íi]nh|sex\s*:/i.test(line)) {
-      if (/n[ữu]/i.test(line)) {
-        result.gioiTinh = "Nữ";
-      } else {
-        result.gioiTinh = "Nam";
-      }
+  // ── Gender ─────────────────────────────────────────────────────────────
+  for (let i = 0; i < norm.length; i++) {
+    if (/gioi\s*tinh|sex/.test(norm[i])) {
+      // Value may be inline or on next line
+      const haystack = (lines[i] + " " + (lines[i + 1] ?? "")).toLowerCase();
+      if (/n[ữu]|female/i.test(haystack)) { result.gioiTinh = "Nữ"; }
+      else                                 { result.gioiTinh = "Nam"; }
       break;
     }
   }
   if (!result.gioiTinh) {
-    // Fallback: look for standalone "Nam" or "Nữ"
     for (const line of lines) {
-      if (/^\s*n[ữu]\s*$/i.test(line)) { result.gioiTinh = "Nữ"; break; }
-      if (/^\s*nam\s*$/i.test(line)) { result.gioiTinh = "Nam"; break; }
+      if (/^\s*n[ữu]\s*$/i.test(line))  { result.gioiTinh = "Nữ"; break; }
+      if (/^\s*nam\s*$/i.test(line))     { result.gioiTinh = "Nam"; break; }
     }
   }
 
   result.quocTich = "Việt Nam";
 
-  // --- Place of origin (Quê quán) ---
-  for (let i = 0; i < lines.length; i++) {
-    if (/qu[eê]\s+qu[áa]n|place\s+of\s+origin/i.test(lines[i])) {
-      const stripped = lines[i]
-        .replace(/qu[eê]\s+qu[áa]n\s*[:/]?\s*/i, "")
+  // Helper: detect whether a line is a known CCCD field label
+  const isLabel = (n: string) =>
+    /ho\s+va\s+ten|full\s*name/.test(n) ||
+    /ngay\s*sinh|date\s*of\s*birth/.test(n) ||
+    /gioi\s*tinh|sex/.test(n) ||
+    /quoc\s*tich|nationality/.test(n) ||
+    /que\s+quan|place\s+of\s+origin/.test(n) ||
+    /noi\s+thuong\s+tru|place\s+of\s+residence/.test(n) ||
+    /co\s+gia\s+tri|expiry/.test(n) ||
+    /ngay.*thang.*nam\s+cap|date\s+of\s+issue/.test(n) ||
+    /dac\s+diem\s+nhan\s+dang|personal\s+identification/.test(n) ||
+    /ngon\s+tro|index\s+finger/.test(n);
+
+  // Helper: collect value lines after a label (up to but not including the
+  // next label line or a date-only line that marks the expiry)
+  const collectValue = (startIdx: number): string => {
+    const parts: string[] = [];
+    for (let j = startIdx; j < lines.length && j < startIdx + 4; j++) {
+      if (isLabel(norm[j])) break;
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(lines[j].trim())) break;
+      if (lines[j].trim()) parts.push(lines[j].trim());
+    }
+    return parts.join(", ");
+  };
+
+  // ── Quê quán ───────────────────────────────────────────────────────────
+  for (let i = 0; i < norm.length; i++) {
+    if (/que\s+quan|place\s+of\s+origin/.test(norm[i])) {
+      const inline = lines[i]
+        .replace(/qu[eê]\s+qu[áa]n\s*[/\\|]?\s*place\s+of\s+origin\s*[:/]?\s*/i, "")
         .replace(/place\s+of\s+origin\s*[:/]?\s*/i, "")
         .trim();
-      result.queQuan =
-        stripped.length > 3 ? stripped : lines[i + 1] ?? stripped;
+      result.queQuan = inline.length > 3 ? inline : collectValue(i + 1);
       break;
     }
   }
 
-  // --- Place of residence (Nơi thường trú) ---
-  for (let i = 0; i < lines.length; i++) {
-    if (
-      /n[oơ]i\s+th[uư][oờ]ng\s+tr[uú]|place\s+of\s+residence/i.test(lines[i])
-    ) {
-      const stripped = lines[i]
-        .replace(/n[oơ]i\s+th[uư][oờ]ng\s+tr[uú]\s*[:/]?\s*/i, "")
+  // ── Nơi thường trú ────────────────────────────────────────────────────
+  for (let i = 0; i < norm.length; i++) {
+    if (/noi\s+thuong\s+tru|place\s+of\s+residence/.test(norm[i])) {
+      const inline = lines[i]
+        .replace(/n[oơ]i\s+th[uư][oờ]ng\s+tr[uú]\s*[/\\|]?\s*place\s+of\s+residence\s*[:/]?\s*/i, "")
         .replace(/place\s+of\s+residence\s*[:/]?\s*/i, "")
         .trim();
-      if (stripped.length > 5) {
-        result.thuongTru = stripped;
-      } else {
-        // Address can span 1-2 lines
-        const parts: string[] = [];
-        if (i + 1 < lines.length && !/c[oó]\s+gi[aá]\s+tr[ịi]|expiry/i.test(lines[i + 1])) {
-          parts.push(lines[i + 1]);
-        }
-        if (i + 2 < lines.length && !/c[oó]\s+gi[aá]\s+tr[ịi]|expiry/i.test(lines[i + 2])) {
-          parts.push(lines[i + 2]);
-        }
-        result.thuongTru = parts.join(", ");
-      }
+      result.thuongTru = inline.length > 5 ? inline : collectValue(i + 1);
       break;
     }
   }
@@ -139,12 +178,9 @@ function parseMrz(rawFront: string, rawBack: string): Partial<CccdData> {
   const raw = `${rawFront}\n${rawBack}`.replace(/\s+/g, " ").toUpperCase();
   const fromMrz: Partial<CccdData> = {};
 
-  // Common VN ID card MRZ shape:
-  // IDVNM<12-digit-id><check> ...
-  const idMatch = raw.match(/IDVNM(\d{12})/);
-  if (idMatch) {
-    fromMrz.soCanCuoc = idMatch[1];
-  }
+  // NOTE: For Vietnamese CCCD the MRZ document-number field (after IDVNM)
+  // is a different internal code, NOT the number printed on the card face.
+  // We intentionally skip soCanCuoc extraction from MRZ to avoid the wrong number.
 
   // DOB + sex + expiry segment, e.g. 0503165F3003161
   const dseMatch = raw.match(/(\d{6})(\d)([MF])(\d{6})/);
@@ -204,8 +240,8 @@ export function parseCccdFromSides(
   const mrz = parseMrz(rawFront, rawBack);
   const merged: Partial<CccdData> = {};
 
-  // MRZ is often more stable than OCR text blocks for key identity fields.
-  pickBest(merged, "soCanCuoc", mrz, front, back);
+  // soCanCuoc: MRZ document-number ≠ printed CCCD number → use text only
+  pickBest(merged, "soCanCuoc", front, back);
   pickBest(merged, "hoTen", front, mrz, back);
   pickBest(merged, "ngaySinh", mrz, front, back);
   pickBest(merged, "gioiTinh", mrz, front, back);
@@ -215,27 +251,28 @@ export function parseCccdFromSides(
   pickBest(merged, "ngayHetHan", mrz, front, back);
 
   const allLines = [...normalizeLines(rawFront), ...normalizeLines(rawBack)];
-  const allText = `${rawFront}\n${rawBack}`;
   const normalizedLines = allLines.map((line) => stripDiacritics(line));
 
-  // Date of issue / Cấp ngày
-  const issueLabelIndex = normalizedLines.findIndex(
-    (line) =>
-      line.includes("ngay, thang, nam cap") ||
-      line.includes("ngay thang nam cap") ||
-      line.includes("date of issue")
+  // ── Date of issue (Cấp ngày) ───────────────────────────────────────────
+  // capNgay is ONLY printed on the BACK side; never mix with front dates
+  // (ngaySinh / ngayHetHan) to avoid the "expiry date as issue date" bug.
+  const backLines = normalizeLines(rawBack);
+  const backNormalized = backLines.map((l) => stripDiacritics(l));
+
+  const issueLabelIndex = backNormalized.findIndex((l) =>
+    l.includes("ngay, thang, nam cap") ||
+    l.includes("ngay thang nam cap") ||
+    l.includes("date of issue")
   );
   if (issueLabelIndex >= 0) {
-    const withLabelDate = allLines[issueLabelIndex].match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
-    const nextLineDate = allLines[issueLabelIndex + 1]?.match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
-    merged.capNgay = withLabelDate ?? nextLineDate ?? merged.capNgay;
+    const onLabel  = backLines[issueLabelIndex].match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
+    const nextLine = backLines[issueLabelIndex + 1]?.match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
+    merged.capNgay = onLabel ?? nextLine;
   }
+  // Fallback: first DD/MM/YYYY on the back side.
+  // MRZ uses YYMMDD (no slashes) so it won't be matched here.
   if (!merged.capNgay) {
-    const dates = allText.match(/\d{2}\/\d{2}\/\d{4}/g) ?? [];
-    if (dates.length >= 2) {
-      // Usually one of the middle dates is issue date, keep best effort.
-      merged.capNgay = dates[Math.max(1, dates.length - 2)];
-    }
+    merged.capNgay = rawBack.match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
   }
 
   // Issued by / Cấp tại
@@ -259,6 +296,39 @@ export function parseCccdFromSides(
       }
     }
   }
+
+  return merged;
+}
+
+/**
+ * Merge region-OCR results on top of the full-card parse.
+ *
+ * Region OCR is more precise (single field, correct PSM, optional whitelist)
+ * so it wins whenever it produced a non-empty value. Full-card parse acts as
+ * the fallback for fields the region crop missed.
+ */
+export function mergeRegionResults(
+  fullCard: Partial<CccdData>,
+  region: RegionOcrResult
+): Partial<CccdData> {
+  const merged = { ...fullCard };
+
+  const apply = <K extends keyof CccdData>(
+    key: K,
+    value: string | undefined
+  ) => {
+    if (value && value.trim()) merged[key] = value.trim() as CccdData[K];
+  };
+
+  apply("soCanCuoc",  region.soCanCuoc);
+  apply("hoTen",      region.hoTen);
+  apply("ngaySinh",   region.ngaySinh);
+  apply("gioiTinh",   region.gioiTinh);
+  apply("queQuan",    region.queQuan);
+  apply("thuongTru",  region.thuongTru);
+  apply("ngayHetHan", region.ngayHetHan);
+  apply("capNgay",    region.capNgay);
+  apply("capTai",     region.capTai);
 
   return merged;
 }

@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-textract": "^3.1032.0",
+    "@google-cloud/vision": "^5.3.5",
+    "@google/generative-ai": "^0.24.1",
     "docx": "^9.6.1",
     "next": "16.2.4",
     "react": "19.2.4",

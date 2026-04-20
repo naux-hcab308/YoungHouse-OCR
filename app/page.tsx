@@ -10,9 +10,14 @@ import type { CccdData } from "./types";
 export default function Home() {
   const [step, setStep] = useState(1);
   const [cccdData, setCccdData] = useState<Partial<CccdData>>({});
+  const [rawText, setRawText] = useState<{ front: string; back: string }>({ front: "", back: "" });
 
-  const handleExtracted = (data: Partial<CccdData>) => {
+  const handleExtracted = (
+    data: Partial<CccdData>,
+    raw: { front: string; back: string }
+  ) => {
     setCccdData(data);
+    setRawText(raw);
     setStep(2);
   };
 
@@ -43,6 +48,8 @@ export default function Home() {
             <DataReview
               data={cccdData}
               onChange={setCccdData}
+              rawTextFront={rawText.front}
+              rawTextBack={rawText.back}
               onBack={() => setStep(1)}
               onNext={() => setStep(3)}
             />

@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import type { CccdData } from "../types";
 
 interface Props {
   data: Partial<CccdData>;
   onChange: (data: Partial<CccdData>) => void;
+  rawTextFront?: string;
+  rawTextBack?: string;
   onBack: () => void;
   onNext: () => void;
 }
@@ -49,7 +52,8 @@ const FIELDS: FieldDef[] = [
   },
 ];
 
-export default function DataReview({ data, onChange, onBack, onNext }: Props) {
+export default function DataReview({ data, onChange, rawTextFront, rawTextBack, onBack, onNext }: Props) {
+  const [showRaw, setShowRaw] = useState(false);
   const filled = FIELDS.filter((f) => data[f.key]?.trim()).length;
   const total = FIELDS.length;
   const hasMinRequired = !!(data.hoTen?.trim() && data.soCanCuoc?.trim());
@@ -98,10 +102,10 @@ export default function DataReview({ data, onChange, onBack, onNext }: Props) {
                 value={v}
                 placeholder={field.placeholder}
                 onChange={(e) => handleChange(field.key, e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 rounded-lg border text-sm text-black transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   empty
-                    ? "border-amber-300 bg-amber-50 placeholder-amber-300"
-                    : "border-gray-300 bg-white"
+                    ? "border-amber-300 bg-amber-50 placeholder:text-black"
+                    : "border-gray-300 bg-white placeholder:text-black"
                 }`}
               />
               {field.hint && (
@@ -111,6 +115,32 @@ export default function DataReview({ data, onChange, onBack, onNext }: Props) {
           );
         })}
       </div>
+
+      {/* Raw OCR debug panel */}
+      {(rawTextFront || rawTextBack) && (
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowRaw((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-xs font-semibold text-gray-500 uppercase tracking-wide"
+          >
+            <span>🔍 Raw OCR text (debug)</span>
+            <span>{showRaw ? "▲ Ẩn" : "▼ Xem"}</span>
+          </button>
+          {showRaw && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-200">
+              {[{ label: "Mặt trước", text: rawTextFront }, { label: "Mặt sau", text: rawTextBack }].map(({ label, text }) => (
+                <div key={label} className="p-3">
+                  <p className="text-xs font-bold text-gray-400 uppercase mb-1">{label}</p>
+                  <pre className="text-xs text-gray-700 whitespace-pre-wrap break-words font-mono leading-relaxed max-h-48 overflow-y-auto">
+                    {text || "(trống)"}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {!hasMinRequired && (
         <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
