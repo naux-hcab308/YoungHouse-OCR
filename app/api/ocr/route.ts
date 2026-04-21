@@ -74,6 +74,10 @@ interface FptField {
   issue_date?: string;
   issue_loc?: string;
   type?: string;
+  // New chip card (2023 "Căn Cước", cc_front/cc_back) extra fields
+  type_new?: string;  // e.g. "cc_front", "cc_back", "chip_front", "chip_back", "new", ...
+  pob?: string;       // Place of birth – Nơi đăng ký khai sinh (cc_back only)
+  mrz?: string;       // MRZ code (chip/cc back only)
 }
 
 interface FptResponse {
@@ -107,36 +111,60 @@ async function runFptOcr(imageBuffer: Buffer): Promise<FptField | null> {
 }
 
 function mapFptToCccd(f: FptField | null, b: FptField | null): Partial<CccdData> {
-  const pick = (a?: string, c?: string) => a?.trim() || c?.trim() || "";
   f = f ?? {};
   b = b ?? {};
+
+  // FPT returns "N/A" for fields it cannot extract — treat as absent
+  const clean = (v?: string): string | undefined => {
+    const t = v?.trim();
+    return t && t !== "N/A" ? t : undefined;
+  };
+  // Return first non-empty/non-N/A value from the candidates list
+  const pick = (...vals: Array<string | undefined>): string => {
+    for (const v of vals) {
+      const c = clean(v);
+      if (c) return c;
+    }
+    return "";
+  };
+
+  // Detect new chip card (2023 "Căn Cước"): type_new = "cc_front" / "cc_back"
+  const isNewChip = [f.type_new, b.type_new].some((t) =>
+    t && /^cc_/.test(t)
+  );
+
   return {
-    soCanCuoc: pick(f.id, b.id),
-    hoTen:     pick(f.name, b.name),
-    ngaySinh:  pick(f.dob, b.dob),
-    gioiTinh:  pick(f.sex, b.sex),
-    quocTich:  pick(f.nationality, b.nationality) || "Việt Nam",
-    queQuan:   pick(f.home, b.home),
-    thuongTru: pick(f.address, b.address),
+    soCanCuoc:  pick(f.id, b.id),
+    hoTen:      pick(f.name, b.name),
+    ngaySinh:   pick(f.dob, b.dob),
+    gioiTinh:   pick(f.sex, b.sex),
+    quocTich:   pick(f.nationality, b.nationality) || "Việt Nam",
+    // New chip card: home field absent on front, back has "pob" (Nơi đăng ký khai sinh)
+    queQuan:    pick(f.home, b.home, b.pob),
+    thuongTru:  pick(f.address, b.address),
+    // New chip card: doe moved to back side
     ngayHetHan: pick(f.doe, b.doe),
-    capNgay:   pick(b.issue_date, f.issue_date),
-    capTai:    pick(b.issue_loc, f.issue_loc),
+    capNgay:    pick(b.issue_date, f.issue_date),
+    // New chip card has no issue_loc; default to "Bộ Công An" (Ministry of Public Security)
+    capTai:     pick(b.issue_loc, f.issue_loc) || (isNewChip ? "Bộ Công An" : ""),
   };
 }
 
 function fptToRawText(data: FptField | null): string {
   if (!data) return "";
+  const notNA = (v?: string) => v && v.trim() !== "N/A" ? v.trim() : "";
   return [
-    data.id          && `Số / No.: ${data.id}`,
-    data.name        && `Họ và tên / Full name: ${data.name}`,
-    data.dob         && `Ngày sinh / Date of birth: ${data.dob}`,
-    data.sex         && `Giới tính / Sex: ${data.sex}`,
-    data.nationality && `Quốc tịch / Nationality: ${data.nationality}`,
-    data.home        && `Quê quán / Place of origin: ${data.home}`,
-    data.address     && `Nơi thường trú / Place of residence: ${data.address}`,
-    data.doe         && `Có giá trị đến / Date of expiry: ${data.doe}`,
-    data.issue_date  && `Ngày, tháng, năm cấp / Date of issue: ${data.issue_date}`,
-    data.issue_loc   && `Nơi cấp: ${data.issue_loc}`,
+    notNA(data.id)          && `Số / No.: ${data.id}`,
+    notNA(data.name)        && `Họ và tên / Full name: ${data.name}`,
+    notNA(data.dob)         && `Ngày sinh / Date of birth: ${data.dob}`,
+    notNA(data.sex)         && `Giới tính / Sex: ${data.sex}`,
+    notNA(data.nationality) && `Quốc tịch / Nationality: ${data.nationality}`,
+    notNA(data.home)        && `Quê quán / Place of origin: ${data.home}`,
+    notNA(data.pob)         && `Nơi đăng ký khai sinh / Place of birth registration: ${data.pob}`,
+    notNA(data.address)     && `Nơi cư trú / Place of residence: ${data.address}`,
+    notNA(data.doe)         && `Có giá trị đến / Date of expiry: ${data.doe}`,
+    notNA(data.issue_date)  && `Ngày, tháng, năm cấp / Date of issue: ${data.issue_date}`,
+    notNA(data.issue_loc)   && `Nơi cấp: ${data.issue_loc}`,
   ]
     .filter(Boolean)
     .join("\n");

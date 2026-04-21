@@ -30,6 +30,7 @@ function splitDate(s: string): [string, string, string] {
 type ParOpts = {
   bold?: boolean;
   center?: boolean;
+  left?: boolean;
   size?: number;
   underline?: boolean;
   indent?: number;
@@ -39,8 +40,13 @@ type ParOpts = {
 };
 
 function par(text: string, opts: ParOpts = {}): Paragraph {
+  const align = opts.center
+    ? AlignmentType.CENTER
+    : opts.left
+    ? AlignmentType.LEFT
+    : AlignmentType.JUSTIFIED;
   return new Paragraph({
-    alignment: opts.center ? AlignmentType.CENTER : AlignmentType.JUSTIFIED,
+    alignment: align,
     indent: opts.indent ? { left: opts.indent } : undefined,
     spacing: {
       line: 360,
@@ -66,8 +72,13 @@ function mixedPar(
   runs: Array<{ text: string; bold?: boolean; size?: number }>,
   opts: ParOpts = {}
 ): Paragraph {
+  const align = opts.center
+    ? AlignmentType.CENTER
+    : opts.left
+    ? AlignmentType.LEFT
+    : AlignmentType.JUSTIFIED;
   return new Paragraph({
-    alignment: opts.center ? AlignmentType.CENTER : AlignmentType.JUSTIFIED,
+    alignment: align,
     indent: opts.indent ? { left: opts.indent } : undefined,
     spacing: {
       line: 360,
@@ -106,7 +117,7 @@ function point(letter: string, text: string): Paragraph {
   return par(`${letter}) ${text}`, { indent: cm(0.75), spaceAfter: 40 });
 }
 
-// ─── Companion block ─────────────────────────────────────────────────────────
+// ─── Companion block (justified – dùng trong HỢP ĐỒNG THUÊ NHÀ) ─────────────
 
 function companionBlock(n: number, c: Partial<CompanionInfo>): Paragraph[] {
   return [
@@ -136,6 +147,42 @@ function companionBlock(n: number, c: Partial<CompanionInfo>): Paragraph[] {
       { text: "Số điện thoại người thân khi cần liên lạc:" },
       { text: val(c.sdtNguoiThan) },
     ]),
+  ];
+}
+
+// ─── Companion block (căn trái – dùng trong PHỤ LỤC HỢP ĐỒNG) ───────────────
+
+function annexCompanionBlock(n: number, c: Partial<CompanionInfo>): Paragraph[] {
+  const L: ParOpts = { left: true, spaceAfter: 30 };
+  return [
+    mixedPar([
+      { text: `${n}. Ông/ bà: ` },
+      { text: val(c.hoTen) },
+      { text: "      Số Điện thoại: " },
+      { text: val(c.soDienThoai) },
+    ], L),
+    mixedPar([
+      { text: "Số CCCD/HC: " },
+      { text: val(c.soCCCD) },
+      { text: "      Cấp ngày: " },
+      { text: val(c.capNgay) },
+    ], L),
+    mixedPar([
+      { text: "Nơi cấp: " },
+      { text: val(c.capTai) },
+    ], L),
+    mixedPar([
+      { text: "Ngày/tháng/năm sinh: " },
+      { text: val(c.ngaySinh) },
+    ], L),
+    mixedPar([
+      { text: "Hộ khẩu thường trú: " },
+      { text: val(c.hoKhau) },
+    ], L),
+    mixedPar([
+      { text: "Số điện thoại người thân khi cần liên lạc: " },
+      { text: val(c.sdtNguoiThan) },
+    ], { ...L, spaceAfter: 80 }),
   ];
 }
 
@@ -461,7 +508,7 @@ export async function generateRentalContract(
   return Packer.toBlob(doc);
 }
 
-// ─── Deposit Contract (generic) ───────────────────────────────────────────────
+// ─── Deposit Slip – GIẤY ĐẶT CỌC ─────────────────────────────────────────────
 
 export async function generateDepositContract(
   cccd: Partial<CccdData>,
@@ -470,69 +517,495 @@ export async function generateDepositContract(
   const [ngayKy, thangKy, namKy] = [
     val(d.ngayKy, "……"),
     val(d.thangKy, "……"),
-    val(d.namKy, "202……"),
+    val(d.namKy, "202…"),
   ];
+
+  const checkBox = (checked?: boolean) => (checked ? "☑" : "☐");
 
   const doc = new Document({
     sections: [
       {
         properties: {
-          page: { margin: { top: cm(2), right: cm(2), bottom: cm(2), left: cm(3) } },
+          page: { margin: { top: cm(2), right: cm(2), bottom: cm(2), left: cm(2.5) } },
         },
         children: [
+          // ── Header ──────────────────────────────────────────────────
           par("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", { bold: true, center: true, size: SZ_TITLE }),
           par("Độc lập – Tự do – Hạnh phúc", { bold: true, center: true, italic: true }),
-          par("──────────────────────────", { center: true }),
           blank(),
-          par("HỢP ĐỒNG ĐẶT CỌC THUÊ NHÀ", { bold: true, center: true, size: SZ_TITLE, underline: true }),
+          par("GIẤY ĐẶT CỌC", { bold: true, center: true, size: SZ_TITLE, underline: true }),
           blank(),
+
+          // ── BÊN A (fixed) ────────────────────────────────────────────
           mixedPar([
-            { text: "Hôm nay, ngày " }, { text: ngayKy, bold: true },
-            { text: " tháng " }, { text: thangKy, bold: true },
-            { text: " năm " }, { text: namKy, bold: true },
-            { text: `, tại ${val(d.benA_diaChi, "Số 85 Đường Mục Uyên - Công Nghệ, Xã Hạ Bằng, Thành phố Hà Nội")}` },
+            { text: "Bên A - Bên Nhận tiền: ", bold: true },
+            { text: val(d.benA_ten, "Hệ thống cho thuê nhà Young House"), bold: true },
           ]),
-          par("Chúng tôi gồm có:"),
+          par(val(d.benA_diaChi, "Số 85 đường Mục Uyên – Công nghệ, Hạ Bằng, HN")),
+          par(`Điện thoại: ${val(d.benA_sdt, "0962 888 797")}`),
+          par("Số Tài khoản: 0904379797 – Ngân hàng MB"),
+          par(
+            "* Lưu ý: Young House chỉ có 1 số tài khoản duy nhất, khách hàng chỉ chuyển khoản qua số tài khoản của Young House cung cấp trên Giấy đặt cọc này./.",
+            { italic: true }
+          ),
           blank(),
 
-          mixedPar([{ text: "BÊN NHẬN CỌC (BÊN A – Chủ nhà): ", bold: true }, { text: val(d.benA_ten, "CÔNG TY TNHH ĐẦU TƯ VÀ THƯƠNG MẠI YOUNG HOUSE"), bold: true }]),
-          par(`Địa chỉ: ${val(d.benA_diaChi, "Số 85 Đường Mục Uyên - Công Nghệ, Xã Hạ Bằng, Thành phố Hà Nội, Việt Nam")}`),
-          par(`Số điện thoại: ${val(d.benA_sdt, "0962 888 797")}`),
+          // ── BÊN B (from CCCD) ────────────────────────────────────────
+          mixedPar([
+            { text: "Bên B: Bên giao tiền:", bold: true },
+          ]),
+          mixedPar([
+            { text: "Ông/bà: " },
+            { text: val(cccd.hoTen) },
+          ]),
+          mixedPar([
+            { text: "Sinh ngày: " },
+            { text: val(cccd.ngaySinh) },
+          ]),
+          mixedPar([
+            { text: "CMT số: " },
+            { text: val(cccd.soCanCuoc) },
+            { text: "  Cấp ngày: " },
+            { text: val(cccd.capNgay) },
+            { text: "  Do: " },
+            { text: val(cccd.capTai) },
+          ]),
+          mixedPar([
+            { text: "Hộ khẩu thường trú: " },
+            { text: val(cccd.thuongTru) },
+          ]),
+          mixedPar([
+            { text: "Điện thoại liên hệ: " },
+            { text: val(d.benB_sdt) },
+          ]),
           blank(),
 
-          par("BÊN ĐẶT CỌC (BÊN B – Người thuê):", { bold: true }),
-          par(`Ông/Bà: ${val(cccd.hoTen)}  –  Ngày sinh: ${val(cccd.ngaySinh)}`),
-          par(`Số CCCD/CMND: ${val(cccd.soCanCuoc)}  –  Điện thoại: ${val(d.benB_sdt)}`),
-          par(`Địa chỉ thường trú: ${val(cccd.thuongTru)}`),
+          // ── Deposit amount ───────────────────────────────────────────
+          mixedPar([
+            { text: "Bên A xác nhận đã nhận số tiền đặt cọc thuê nhà của Bên B là: " },
+            { text: val(d.tienCoc), bold: true },
+            { text: " đồng " },
+            { text: `(Bằng chữ: ${val(d.tienCocText, "……………………………………………………………………")})` },
+          ]),
+          mixedPar([
+            { text: "để thuê căn phòng " },
+            { text: val(d.soPhong, "……"), bold: true },
+            { text: " tại địa chỉ nhà số: " },
+            { text: val(d.benA_diaChi, "Số 85 đường Mục Uyên – Công nghệ, Hạ Bằng, HN") },
+          ]),
+          mixedPar([
+            { text: "Giá thuê: " },
+            { text: val(d.giaThue, "……………………………………"), bold: true },
+            { text: " /tháng" },
+          ]),
+          mixedPar([
+            { text: "Giá dịch vụ: " },
+            { text: val(d.phiQuanLy, "……………") },
+            { text: "/người/tháng (wifi, vệ sinh, thang máy, gửi xe, bảo vệ…);" },
+          ]),
+          mixedPar([
+            { text: "Điện: " },
+            { text: val(d.dienMuaDong, "………………") },
+            { text: "/số (Mùa Đông) và " },
+            { text: val(d.dienMuaHe, "………………") },
+            { text: "/số (Mùa Hè)" },
+          ]),
+
+          // ── Dịch vụ khác (checkboxes) ────────────────────────────────
+          par("Dịch vụ khác:", { bold: false }),
+          mixedPar([
+            { text: `  ${checkBox(d.anTheoThang)}  Ăn theo tháng          ` },
+            { text: `  ${checkBox(d.donVeSinhTheoThang)}  Dọn vệ sinh theo tháng` },
+          ]),
           blank(),
 
-          article(1, "NỘI DUNG ĐẶT CỌC"),
-          par(`Bên B đặt cọc cho Bên A số tiền là: ${val(d.tienCoc)} đồng (${val(d.tienCocText)})`),
-          par(`Mục đích: đặt cọc thuê phòng ${val(d.soPhong, "YH11-……")} tại địa chỉ: ${val(d.benA_diaChi)}`),
-          par(`Giá thuê dự kiến: ${val(d.giaThue)} đồng/tháng`),
-          par(`Thời gian dự kiến ký hợp đồng thuê chính thức: ${val(d.ngayBatDau)}`),
+          // ── Rental period ────────────────────────────────────────────
+          mixedPar([
+            { text: "Thời gian thuê: " },
+            { text: val(d.soThangThue, "…………") },
+            { text: " tháng, Tính từ ngày " },
+            { text: val(d.ngayBatDau, "…………………") },
+            { text: " đến ngày " },
+            { text: val(d.ngayKetThuc, "……………") },
+          ]),
+          mixedPar([
+            { text: "Thời gian tính tiền thuê nhà: " },
+            { text: val(d.thoiGianTinhTien) },
+          ]),
+          mixedPar([
+            { text: "Thời gian ký hợp đồng: " },
+            { text: val(d.ngayHenKyHopDong) },
+          ]),
+          mixedPar([
+            { text: "Kỳ hạn thanh toán: " },
+            { text: val(d.phuongThucThanhToan, "……") },
+            { text: " tháng/lần. Thanh toán từ ngày 25 đến ngày 30 tháng liên trước. Trường hợp đặc biệt như ngày Lễ, Tết… Young House sẽ có thông báo cụ thể tới khách hàng." },
+          ]),
+          mixedPar([
+            { text: "Hẹn đến ngày " },
+            { text: val(d.ngayHenKyHopDong, "……………………") },
+            { text: " Bên B sẽ đến ký hợp đồng thuê nhà. Nếu đến ngày " },
+            { text: val(d.ngayHenKyHopDong, "……………") },
+            { text: " bên B không đến ký hợp đồng, bên A được quyền cho người khác thuê và bên B sẽ mất cọc cho bên A." },
+          ]),
           blank(),
 
-          article(2, "TRÁCH NHIỆM CÁC BÊN"),
-          par("1. Nếu Bên B từ chối thuê sau khi đã đặt cọc, Bên B mất toàn bộ tiền cọc.", { indent: cm(0.75) }),
-          par("2. Nếu Bên A từ chối cho thuê sau khi đã nhận cọc, Bên A phải hoàn trả tiền cọc và bồi thường thêm một khoản bằng số tiền cọc cho Bên B.", { indent: cm(0.75) }),
-          par("3. Khi hợp đồng thuê chính thức được ký kết, tiền đặt cọc sẽ được tính vào tiền cọc hoặc tiền thuê tháng đầu theo thoả thuận.", { indent: cm(0.75) }),
-          par("4. Trong thời gian hiệu lực hợp đồng này, Bên A cam kết không cho người khác thuê phòng nêu trên.", { indent: cm(0.75) }),
+          // ── Date / place ──────────────────────────────────────────────
+          mixedPar([
+            { text: "……………………, ngày " },
+            { text: ngayKy },
+            { text: " tháng " },
+            { text: thangKy },
+            { text: " năm " },
+            { text: namKy },
+          ], { center: true }),
           blank(),
 
-          article(3, "CAM KẾT"),
-          par("Hợp đồng có hiệu lực kể từ ngày ký đến khi hai bên hoàn thành nghĩa vụ. Hợp đồng được lập thành 02 bản có giá trị pháp lý như nhau, mỗi bên giữ 01 bản."),
-          blank(),
-          blank(),
-
+          // ── Signatures ────────────────────────────────────────────────
           new Paragraph({
             spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
             children: [
-              new TextRun({ text: "         ĐẠI DIỆN BÊN A", bold: true, font: FONT, size: SZ }),
-              new TextRun({ text: "                                        ĐẠI DIỆN BÊN B", bold: true, font: FONT, size: SZ }),
+              new TextRun({ text: "      BÊN GIAO TIỀN", bold: true, font: FONT, size: SZ }),
+              new TextRun({ text: "                                           BÊN NHẬN TIỀN", bold: true, font: FONT, size: SZ }),
             ],
-          })
-          
+          }),
+          blank(),
+          blank(),
+          blank(),
+          blank(),
+          blank(),
+          blank(),
+          blank(),
+          blank(),
+          blank(),
+          blank(),
+          blank(),
+          blank(),
+
+          // ── Customer benefits 2025 ────────────────────────────────────
+          par("QUYỀN LỢI KHÁCH HÀNG MỚI NĂM 2026", { bold: true, center: true }),
+          par("********************", { center: true }),
+          par("1. Quà tặng:", { bold: true }),
+          par("- Tặng Voucher sử dụng 10 sản phẩm bất kì của Young Food & Drink (các món ăn Việt, các món Âu như Pizza, Mì Ý… Và các loại nước ép, trà sữa, sinh tố…).", { indent: cm(0.5) }),
+          par("- Tài trợ địa điểm + Tặng 10 cốc nước/ hoặc 01 bánh Pizza khi khách hàng tổ chức Sinh nhật tại Young Food & Drink.", { indent: cm(0.5) }),
+          par("2. Chiết khấu: Giảm 4% tiền thuê nhà khi thanh toán 06 tháng, và giảm 8% tiền thuê nhà khi đóng 12 tháng... khi chuyển khoản trong 48h kể từ ngày kí hợp đồng. Lưu ý: Số tiền giảm không bao gồm phí dịch vụ.", { bold: true }),
+          par("3. Dịch vụ cố định trong năm:", { bold: true }),
+          par("* Ăn Young Food & Drink (thực đơn tự chọn món mỗi ngày).", { indent: cm(0.5) }),
+          par("- Theo tháng: 2.1 triệu/tháng.", { indent: cm(1) }),
+          par("* Dọn phòng: 500K/Tháng (1 tuần/lần)", { indent: cm(0.5) }),
+          par("***************", { center: true }),
+          par("Quý khách hàng Quét mã QR vào nhóm KHÁCH HÀNG YOUNG HOUSE để được hỗ trợ tốt nhất:", { italic: true }),
+          par("Trân trọng cảm ơn khách hàng đã tin dùng các sản phẩm của Young Group!", { bold: true, center: true }),
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBlob(doc);
+}
+
+// ─── Annex – PHỤ LỤC HỢP ĐỒNG ───────────────────────────────────────────────
+
+export async function generateAnnexContract(
+  d: ContractDetails
+): Promise<Blob> {
+  const [ngayKy, thangKy, namKy] = [
+    val(d.ngayKy, "……"),
+    val(d.thangKy, "……"),
+    val(d.namKy, "202……"),
+  ];
+
+  const companions = [...(d.nguoiOCung ?? [])];
+  while (companions.length < 3) companions.push({} as CompanionInfo);
+  const companionParagraphs: Paragraph[] = companions.flatMap((c, i) =>
+    annexCompanionBlock(i + 1, c)
+  );
+
+  // Shorthand for left-aligned paragraphs used throughout the annex
+  const L: ParOpts = { left: true };
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: { margin: { top: cm(2), right: cm(2.5), bottom: cm(2), left: cm(3) } },
+        },
+        children: [
+          // ── Header ──────────────────────────────────────────────────
+          par(
+            val(d.benA_ten, "CÔNG TY TNHH ĐẦU TƯ VÀ THƯƠNG MẠI YOUNG HOUSE"),
+            { bold: true, center: true, size: SZ_TITLE }
+          ),
+          par("PHỤ LỤC HỢP ĐỒNG", {
+            bold: true, center: true, size: SZ_TITLE, underline: true,
+          }),
+          par("Số: 01/YH", { center: true }),
+          blank(),
+
+          // ── Date / place ─────────────────────────────────────────────
+          mixedPar([
+            { text: "Hôm nay: Ngày " },
+            { text: ngayKy, bold: true },
+            { text: " tháng " },
+            { text: thangKy, bold: true },
+            { text: " năm " },
+            { text: namKy, bold: true },
+          ], L),
+          par(
+            `Tại: ${val(d.benA_diaChi, "Số 85 Đường Mục Uyên - Công Nghệ, Xã Hạ Bằng, Thành phố Hà Nội")}`,
+            L
+          ),
+          blank(),
+
+          // ── Room / building ──────────────────────────────────────────
+          mixedPar([
+            { text: "Bên A và Bên B cùng xác nhận tại phòng " },
+            { text: val(d.soPhong, "………"), bold: true },
+            { text: "  Tòa nhà " },
+            { text: val(d.toaNha, "………"), bold: true },
+            { text: ". Ngoài bên A đại diện ký hợp đồng, còn có những người sau cùng sinh sống trong phòng, gồm:" },
+          ], L),
+          blank(),
+
+          // ── Companion blocks ─────────────────────────────────────────
+          ...companionParagraphs,
+
+          // ── Closing ──────────────────────────────────────────────────
+          par(
+            "Các ông/bà có tên tại Phụ lục hợp đồng này tự nguyện cử bên B làm người đại diện ký kết hợp đồng với bên A. Các thành viên xác nhận đã đọc và hiểu những nội dung được hai bên thỏa thuận trong hợp đồng và các bản phụ lục hợp đồng. Các thành viên cam kết cùng thực hiện và cùng chịu trách nhiệm như nhau."
+          ),
+          par(
+            "Phụ lục hợp đồng là bộ phận không thể tách rời khỏi hợp đồng, có giá trị pháp lý và cơ sở thực hiện như hợp đồng."
+          ),
+          blank(),
+          blank(),
+
+          // ── Signatures ───────────────────────────────────────────────
+          new Paragraph({
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [
+              new TextRun({ text: "         BÊN A", bold: true, font: FONT, size: SZ }),
+              new TextRun({ text: "                                              BÊN B", bold: true, font: FONT, size: SZ }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [
+              new TextRun({ text: "    (Ký, đóng dấu)", font: FONT, size: SZ, italics: true }),
+              new TextRun({ text: "                                    (Tất cả cùng ký tên)", font: FONT, size: SZ, italics: true }),
+            ],
+          }),
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBlob(doc);
+}
+
+// ─── Fire Safety Commitment – BẢN CAM KẾT PCCC ───────────────────────────────
+
+export async function generateFireSafetyCommitment(
+  d: ContractDetails
+): Promise<Blob> {
+  const [ngayKy, thangKy, namKy] = [
+    val(d.ngayKy, "……"),
+    val(d.thangKy, "……"),
+    val(d.namKy, "202……"),
+  ];
+
+  const L: ParOpts = { left: true };
+  const LI = (text: string) => par(text, { left: true, indent: cm(0.75), spaceAfter: 50 });
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: { margin: { top: cm(2), right: cm(2.5), bottom: cm(2), left: cm(3) } },
+        },
+        children: [
+          par(
+            val(d.benA_ten, "CÔNG TY TNHH ĐẦU TƯ VÀ THƯƠNG MẠI YOUNG HOUSE"),
+            { bold: true, center: true, size: SZ_TITLE }
+          ),
+          par("PHỤ LỤC HỢP ĐỒNG", { bold: true, center: true, size: SZ_TITLE }),
+          par("Số 04/YH", { center: true }),
+          blank(),
+          par("BẢN CAM KẾT", { bold: true, center: true, size: SZ_TITLE, underline: true }),
+          par("VỀ AN TOÀN PHÒNG CHỐNG CHÁY NỔ TRONG TÒA CHUNG CƯ", { bold: true, center: true }),
+          blank(),
+          mixedPar([
+            { text: "Hôm nay: Ngày " }, { text: ngayKy, bold: true },
+            { text: " tháng " }, { text: thangKy, bold: true },
+            { text: " năm " }, { text: namKy, bold: true },
+          ], L),
+          par(`Tại: ${val(d.benA_diaChi, "Số 85 Đường Mục Uyên - Công Nghệ, Xã Hạ Bằng, Thành phố Hà Nội")}`, L),
+          blank(),
+          mixedPar([
+            { text: "Bên B (tất cả các thành viên thuê phòng) số " },
+            { text: val(d.soPhong, "……"), bold: true },
+            { text: " tại Tòa nhà YH" },
+            { text: val(d.toaNha, "……"), bold: true },
+            { text: " cùng nhau xác nhận: Để đảm bảo an toàn phòng chống cháy nổ trong tòa nhà chung cư, nhà trọ cũng như thực hiện tốt quy định về công tác an toàn của BQL tòa nhà, tôi xin cam kết với BQL tòa nhà như sau:" },
+          ], L),
+          blank(),
+          LI("1. Không hút thuốc lá, vứt tàn thuốc lá lung tung, đốt vàng mã hương hỏa trong khu vực tòa nhà. Không sử dụng các đồ dùng điện công suất cao cùng một lúc."),
+          LI("2. Thường xuyên kiểm tra đảm bảo an toàn nguồn lửa, nguồn nhiệt trong phòng như không đấu nối điện thiếu an toàn, bình gas, dây cấp gas phải đủ tiêu chuẩn an toàn xa nguồn điện (hoặc nơi có khả năng phát sinh nguồn nhiệt); kiểm tra ngắt cầu dao (attomat) các khu vực không sử dụng khi về quê hoặc đi du lịch dài ngày và trong thời gian nghỉ Lễ, Tết."),
+          LI("3. Không để vật cồng kềnh ở khu vực hành lang xe, thoát hiểm gây khó khăn trong việc cứu nạn, cứu hộ."),
+          LI("4. Đảm bảo xe không bị rò xăng dầu ra khu vực nhà xe; xe điện phải có bình, dây xạc đảm bảo an toàn phòng chống cháy nổ."),
+          LI("5. Nhắc nhở các thành viên trong phòng đảm bảo trong việc phòng chống cháy nổ."),
+          LI("6. Cam kết chịu hoàn toàn trách nhiệm khi xảy ra sự cố cháy nổ do mình gây ra hoặc từ khu vực mình gây ra."),
+          LI("7. Tham gia đầy đủ các lớp huấn luyện PCCC do tòa nhà hoặc cơ quan quản lý tổ chức. Nếu không tham gia, tôi hoàn toàn chịu trách nhiệm khi cháy nổ xảy ra."),
+          blank(),
+          blank(),
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [new TextRun({ text: "NGƯỜI CAM KẾT", bold: true, font: FONT, size: SZ })],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [new TextRun({ text: "(Tất cả cùng ký tên)", font: FONT, size: SZ, italics: true })],
+          }),
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBlob(doc);
+}
+
+// ─── House Rules Commitment – BẢN CAM KẾT THỰC HIỆN NỘI QUY ─────────────────
+
+export async function generateHouseRulesCommitment(
+  d: ContractDetails
+): Promise<Blob> {
+  const [ngayKy, thangKy, namKy] = [
+    val(d.ngayKy, "……"),
+    val(d.thangKy, "……"),
+    val(d.namKy, "202……"),
+  ];
+
+  const L: ParOpts = { left: true };
+  const I1: ParOpts = { left: true, indent: cm(0.75), spaceAfter: 50 };
+  const I2: ParOpts = { left: true, indent: cm(1.2), spaceAfter: 45 };
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: { margin: { top: cm(2), right: cm(2.5), bottom: cm(2), left: cm(3) } },
+        },
+        children: [
+          par(
+            val(d.benA_ten, "CÔNG TY TNHH ĐẦU TƯ VÀ THƯƠNG MẠI YOUNG HOUSE"),
+            { bold: true, center: true, size: SZ_TITLE }
+          ),
+          par("PHỤ LỤC HỢP ĐỒNG", { bold: true, center: true, size: SZ_TITLE }),
+          par("Số 03/YH", { center: true }),
+          blank(),
+          par("BẢN CAM KẾT THỰC HIỆN NỘI QUY", { bold: true, center: true, size: SZ_TITLE }),
+          blank(),
+          mixedPar(
+            [
+              { text: "Hôm nay: Ngày " },
+              { text: ngayKy, bold: true },
+              { text: " tháng " },
+              { text: thangKy, bold: true },
+              { text: " năm " },
+              { text: namKy, bold: true },
+            ],
+            L
+          ),
+          par(
+            `Tại: ${val(d.benA_diaChi, "Số 85 Đường Mục Uyên - Công Nghệ, Xã Hạ Bằng, Thành phố Hà Nội")}`,
+            L
+          ),
+          blank(),
+          mixedPar(
+            [
+              { text: "Bên B (tất cả các thành viên thuê phòng) số " },
+              { text: val(d.soPhong, "……"), bold: true },
+              { text: " tại Tòa nhà YH" },
+              { text: val(d.toaNha, "……"), bold: true },
+              {
+                text: " xác nhận đã đọc hiểu và cùng nhau ký bản cam kết về việc thực hiện đầy đủ Nội quy khi ở trong Hệ thống nhà cho thuê Young House như sau:",
+              },
+            ],
+            L
+          ),
+          blank(),
+
+          par(
+            "1. Tôi/Chúng tôi đã đọc kỹ hợp đồng thuê nhà và cam kết sẽ thực hiện đúng theo hợp đồng. Nếu vi phạm, tôi/chúng tôi sẽ chịu phạt theo điều khoản hợp đồng.",
+            I1
+          ),
+          par("2. Tôi/Chúng tôi đồng ý thực hiện theo những Quy định tại nhà ở của Young House như sau:", I1),
+
+          par("a. KHÔNG sử dụng, tàng trữ buôn bán chất kích thích dưới mọi hình thức.", I2),
+          par("b. KHÔNG gây gổ đánh nhau, làm mất đoàn kết, mất trật tự an ninh trong tòa nhà.", I2),
+          par("c. KHÔNG tụ tập bạn bè uống rượu bia, liên hoan, mở nhạc to gây ồn ào, mất trật tự sau 22h000.", I2),
+          par("d. KHÔNG tổ chức bất kỳ hình thức phạm pháp nào tại tòa nhà như: đánh bạc, mại dâm, hút chích…", I2),
+          par(
+            "e. Tuân thủ tốt về công tác phòng cháy chữa cháy, KHÔNG sử dụng các chất gây nổ trong khu trọ, không đốt bất cứ thứ gì trong phòng. Chấp hành qui định về PCCC và an ninh trật tự nghiêm túc. Tham gia đầy đủ các lớp huấn luyện PCCC do tòa nhà hoặc cơ quan quản lý tổ chức.",
+            I2
+          ),
+          par("f. KHÔNG lập ban thờ, thắp hương trong phòng.", I2),
+          par(
+            "g. Khách ra vào phải đóng cửa cổng cẩn thận, Khi xảy ra mất mát tài sản của khách trọ hoặc tài sản của tòa nhà, nếu Tôi/Chúng tôi là người không đóng cửa, Tôi/Chúng tôi sẽ phải chịu trách nhiệm.",
+            I2
+          ),
+          par("h. KHÔNG chứa chấp tội phạm. Nếu có khách tới ở nhờ qua đêm, Tôi/Chúng tôi sẽ khai báo với quản lý tòa nhà.", I2),
+          par("i. KHÔNG hút thuốc trong khu vực chung của tòa nhà (thang máy, hành lang, khu vực nhà xe…).", I2),
+          par(
+            "j. Tôi/Chúng tôi sẽ tự bảo quản giữ gìn tài sản, thiết bị trong phòng trọ của mình; không tự ý tháo dỡ, sửa chữa, dán vẽ, đục khoét tường bừa bãi, nếu hư hỏng Tôi/Chúng tôi chấp nhận đền bù theo qui định.",
+            I2
+          ),
+          par(
+            "k. Tôi/Chúng tôi sẽ giữ gìn vệ sinh chung của tòa nhà, thu gom rác gọn gàng, buộc chặt bịch để rác không tràn ra bên ngoài, để rác đúng nơi quy định, không để bừa bãi, đổ rác mỗi ngày; Để giày lên giá trong phòng; không để giày hay bất cứ đồ đạc cá nhân nào ở ngoài hành lang.",
+            I2
+          ),
+          par(
+            "l. Tôi/Chúng tôi sẽ để xe đúng nơi qui định, ra vào tắt máy dắt xe; nếu về trước thì cho xe vào trong gọn gàng, thẳng lối để người sau có chỗ để xe; Nếu đi xe đạp điện, tôi sẽ để đúng nơi qui định, và không sạc xe vào ban đêm từ 21h30 trở đi.",
+            I2
+          ),
+          par(
+            "m. Tôi/Chúng tôi cam kết sẽ phơi quần áo đúng nơi quy định, vắt khô để không bị nhễu nước, gây ướt mất vệ sinh, không phơi đồ ngay hành lang; không để quá 60 phút từ khi máy giặt xong.",
+            I2
+          ),
+          par("n. Nếu nấu ăn, Tôi/Chúng tôi cam kết sử dụng bếp từ để đảm bảo không gây cháy nổ. KHÔNG sử dụng bếp ga trong tòa nhà.", I2),
+          par(
+            "o. Sử dụng wifi theo quy định và dịch vụ của tòa nhà cung cấp. KHÔNG sử dụng bộ kích sóng, không tự ý đổi mật khẩu… gây ảnh hưởng tới wifi của tòa nhà.",
+            I2
+          ),
+          par(
+            "p. TUYỆT ĐỐI KHÔNG chụp ảnh, viết bình luận để nói xấu, bôi nhọ hình ảnh của Young House trên mạng xã hội và các nền tảng, hình thức khác. Nếu vi phạm, Tôi/Chúng tôi hoàn toàn chịu trách nhiệm trước pháp luật.",
+            I2
+          ),
+
+          blank(),
+          par("Nếu vi phạm bất cứ điều gì trong các điều nêu trong bản nội quy này, tôi sẽ chấp nhận hình phạt như sau:", I1),
+          par("1. Lần thứ 1: chịu phạt 100.000 VNĐ (một trăm nghìn đồng)", I1),
+          par("2. Lần thứ 2: chịu phạt 200.000 VNĐ (Hai trăm nghìn đồng)", I1),
+          par("3. Lần thứ 3: Young House có quyền lấy lại phòng và tôi chịu mất tiền đặt cọc!", I1),
+          par(
+            "Bản cam kết thực hiện Nội quy được lập thành 02 bản, Young House giữ 01 bản, khách thuê phòng giữ 01 bản, có giá trị pháp lý như nhau!",
+            I1
+          ),
+
+          blank(),
+          blank(),
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [new TextRun({ text: "NGƯỜI CAM KẾT", bold: true, font: FONT, size: SZ })],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [new TextRun({ text: "(Tất cả cùng ký tên)", font: FONT, size: SZ, italics: true })],
+          }),
         ],
       },
     ],

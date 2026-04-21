@@ -73,4 +73,16 @@ export interface ContractDetails {
   // ── Contract period ──────────────────────────────────────────────────
   ngayBatDau: string   // DD/MM/YYYY
   ngayKetThuc: string  // DD/MM/YYYY
+
+  // ── Annex (PHỤ LỤC) specific ─────────────────────────────────────────
+  toaNha?: string               // tòa nhà, VD: YH11
+
+  // ── Deposit slip (GIẤY ĐẶT CỌC) specific ────────────────────────────
+  soThangThue?: string          // số tháng thuê
+  thoiGianTinhTien?: string     // thời gian tính tiền thuê nhà
+  ngayHenKyHopDong?: string     // hẹn ngày ký hợp đồng chính thức (DD/MM/YYYY)
+  dienMuaDong?: string          // đơn giá điện mùa đông (đồng/số)
+  dienMuaHe?: string            // đơn giá điện mùa hè (đồng/số)
+  anTheoThang?: boolean         // dịch vụ ăn theo tháng
+  donVeSinhTheoThang?: boolean  // dịch vụ dọn vệ sinh theo tháng
 }
