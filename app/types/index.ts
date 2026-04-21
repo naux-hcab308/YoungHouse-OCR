@@ -23,10 +23,14 @@ export interface CompanionInfo {
   sdtNguoiThan: string
 }
 
-export type ContractType = "thue-nha" | "dat-coc"
+export type ContractType = "thue-nha" | "phu-luc" | "cam-ket-chay" | "cam-ket-noi-quy" | "dat-coc"
 
 export interface ContractDetails {
   loaiHopDong: ContractType
+
+  // ── Raw CCCD text (for display) ───────────────────────────────────────
+  rawCccdFront?: string
+  rawCccdBack?: string
 
   // ── Signing date ─────────────────────────────────────────────────────
   ngayKy: string   // DD

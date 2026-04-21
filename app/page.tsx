@@ -127,7 +127,7 @@ export default function Home() {
                   onNext={() => setStep(3)}
                 />
               )}
-              {step === 3 && <ContractForm cccd={cccdData} onBack={() => setStep(2)} />}
+              {step === 3 && <ContractForm cccd={cccdData} rawText={rawText} onBack={() => setStep(2)} />}
             </div>
 
             <p className="mt-6 text-center text-xs font-medium text-slate-400">
