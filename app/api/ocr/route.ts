@@ -1,45 +1,19 @@
 import { NextRequest } from "next/server";
-import { parseCccdFromSides } from "@/app/lib/parseCard";
+import { extractCccdWithFpt } from "@/app/lib/fptOcr";
 import { normalizeWithAi } from "@/app/lib/normalizeWithAi";
 import sharp from "sharp";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// ── AWS Textract client ────────────────────────────────────────────────────
 // ── Image prep ─────────────────────────────────────────────────────────────
-// Textract handles denoising internally — just fix orientation and cap size.
-async function prepareForTextract(buffer: Buffer): Promise<Buffer> {
+// Prepare image for OCR: fix orientation and optimize size
+async function prepareImage(buffer: Buffer): Promise<Buffer> {
   return sharp(buffer)
     .rotate()
     .resize({ width: 2000, withoutEnlargement: true })
     .jpeg({ quality: 90 })
     .toBuffer();
-}
-
-// ── Textract OCR ───────────────────────────────────────────────────────────
-async function runTextract(imageBuffer: Buffer): Promise<string> {
-  const { TextractClient, DetectDocumentTextCommand } = await import(
-    "@aws-sdk/client-textract"
-  );
-  const textract = new TextractClient({
-    region: process.env.AWS_REGION ?? "us-east-1",
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
-  });
-
-  const command = new DetectDocumentTextCommand({
-    Document: { Bytes: imageBuffer },
-  });
-
-  const response = await textract.send(command);
-
-  return (response.Blocks ?? [])
-    .filter((b) => b.BlockType === "LINE" && b.Text)
-    .map((b) => b.Text as string)
-    .join("\n");
 }
 
 // ── Route handler ──────────────────────────────────────────────────────────
@@ -73,21 +47,22 @@ export async function POST(request: NextRequest) {
 
   try {
     const [frontBuffer, backBuffer] = await Promise.all([
-      front.arrayBuffer().then((ab) => prepareForTextract(Buffer.from(ab))),
-      back.arrayBuffer().then((ab)  => prepareForTextract(Buffer.from(ab))),
+      front.arrayBuffer().then((ab) => prepareImage(Buffer.from(ab))),
+      back.arrayBuffer().then((ab) => prepareImage(Buffer.from(ab))),
     ]);
 
-    const [frontText, backText] = await Promise.all([
-      runTextract(frontBuffer),
-      runTextract(backBuffer),
-    ]);
+    // Use FPT.AI IDR for CCCD extraction
+    const { parsed, rawTextFront, rawTextBack } = await extractCccdWithFpt(
+      frontBuffer,
+      backBuffer
+    );
 
-    const parsed  = parseCccdFromSides(frontText, backText, cardType);
-    const normalized = await normalizeWithAi(parsed, frontText, backText);
+    // Normalize with AI for additional corrections
+    const normalized = await normalizeWithAi(parsed, rawTextFront, rawTextBack);
 
-    return Response.json({ rawTextFront: frontText, rawTextBack: backText, parsed: normalized });
+    return Response.json({ rawTextFront, rawTextBack, parsed: normalized });
   } catch (err) {
-    console.error("[Textract] error:", err);
+    console.error("[OCR] error:", err);
     return Response.json(
       { error: "Không thể xử lý ảnh. Vui lòng thử lại với ảnh rõ hơn." },
       { status: 500 }
