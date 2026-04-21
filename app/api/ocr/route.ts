@@ -87,7 +87,7 @@ async function runFptOcr(imageBuffer: Buffer): Promise<FptField | null> {
   if (!apiKey) throw new Error("FPT_AI_API_KEY is not configured");
 
   const fd = new FormData();
-  fd.append("image", new Blob([imageBuffer], { type: "image/jpeg" }), "image.jpg");
+  fd.append("image", new Blob([new Uint8Array(imageBuffer)], { type: "image/jpeg" }), "image.jpg");
 
   const response = await fetch("https://api.fpt.ai/vision/idr/vnm", {
     method: "POST",
