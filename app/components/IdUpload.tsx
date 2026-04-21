@@ -119,25 +119,31 @@ export default function IdUpload({ onExtracted }: Props) {
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => setCardType("old")}
-            className={`h-11 rounded-xl border text-sm font-semibold transition-colors ${
-              cardType === "old"
-                ? "border-blue-600 bg-blue-50 text-blue-700"
-                : "border-gray-300 bg-white text-gray-700 hover:border-blue-300"
+            onClick={() => setCardType("new")}
+            className={`h-12 rounded-2xl border-2 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+              cardType === "new"
+                ? "border-rose-500 bg-rose-50 text-gray-900 shadow-sm"
+                : "border-gray-200 bg-gray-50 text-gray-800 hover:border-rose-200"
             }`}
           >
-            CCCD cũ
+            <span className="text-lg" aria-hidden>
+              🪪
+            </span>
+            CCCD mới
           </button>
           <button
             type="button"
-            onClick={() => setCardType("new")}
-            className={`h-11 rounded-xl border text-sm font-semibold transition-colors ${
-              cardType === "new"
-                ? "border-blue-600 bg-blue-50 text-blue-700"
-                : "border-gray-300 bg-white text-gray-700 hover:border-blue-300"
+            onClick={() => setCardType("old")}
+            className={`h-12 rounded-2xl border-2 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+              cardType === "old"
+                ? "border-rose-500 bg-rose-50 text-gray-900 shadow-sm"
+                : "border-gray-200 bg-gray-50 text-gray-800 hover:border-rose-200"
             }`}
           >
-            CCCD mới
+            <span className="text-lg" aria-hidden>
+              💳
+            </span>
+            CCCD cũ
           </button>
         </div>
       </div>
@@ -179,7 +185,7 @@ export default function IdUpload({ onExtracted }: Props) {
           </div>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-600 rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-cyan-600 to-rose-500 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -203,7 +209,7 @@ export default function IdUpload({ onExtracted }: Props) {
       <button
         onClick={runOcr}
         disabled={!frontFile || !backFile || processing}
-        className="w-full h-12 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+        className="w-full h-12 rounded-full bg-sky-900 text-white font-semibold text-sm hover:bg-sky-950 active:bg-black disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-md"
       >
         {processing ? (
           <>
@@ -222,6 +228,9 @@ export default function IdUpload({ onExtracted }: Props) {
           </>
         )}
       </button>
+      <p className="text-center text-xs text-gray-500 italic">
+        Vui lòng đảm bảo hình ảnh rõ nét và không bị mất góc.
+      </p>
     </div>
   );
 }
@@ -251,12 +260,11 @@ function UploadCard({
 }) {
   return (
     <div>
-      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{title}</p>
       <div
         className={`relative border-2 border-dashed rounded-2xl transition-colors cursor-pointer ${
           dragging
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/40"
+            ? "border-cyan-500 bg-cyan-50/50"
+            : "border-gray-300 bg-white hover:border-rose-300 hover:bg-rose-50/30"
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -289,13 +297,21 @@ function UploadCard({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            <div className="w-14 h-14 rounded-full bg-sky-100 flex items-center justify-center mb-3 ring-4 ring-sky-50">
+              <svg className="w-7 h-7 text-sky-700" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
+                />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
               </svg>
             </div>
-            <p className="font-medium text-gray-700 text-sm">Kéo thả ảnh vào đây</p>
-            <p className="text-xs text-gray-400 mt-1">hoặc nhấn để chọn file</p>
+            <p className="font-bold text-gray-900 text-sm">{title}</p>
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mt-1">
+              Chạm để chụp hoặc tải lên
+            </p>
+            <p className="text-xs text-gray-400 mt-2">Kéo thả ảnh vào đây hoặc nhấn để chọn file</p>
           </div>
         )}
       </div>

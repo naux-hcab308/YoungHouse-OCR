@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import ContractForm from "./components/ContractForm";
 import DataReview from "./components/DataReview";
@@ -22,18 +23,23 @@ export default function Home() {
   };
 
   return (
-    <div className="flex-1 bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-full">
+    <div className="flex-1 bg-gradient-to-b from-slate-100 via-white to-cyan-50/40 min-h-full">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-gray-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-10 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-            </svg>
+          <div className="relative h-10 w-10 shrink-0 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center p-1">
+            <Image
+              src="/younghouse-logo.png"
+              alt="Younghouse"
+              width={36}
+              height={36}
+              className="object-contain h-9 w-9"
+              priority
+            />
           </div>
           <div>
-            <h1 className="text-base font-bold text-gray-900 leading-none">ORC – Quét hợp đồng</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Nhận dạng CCCD & tạo hợp đồng thuê nhà</p>
+            <h1 className="text-base font-bold text-sky-900 leading-tight">ORC – Quét hợp đồng</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Nhận dạng CCCD & tạo hợp đồng thuê nhà</p>
           </div>
         </div>
       </header>
@@ -42,7 +48,7 @@ export default function Home() {
       <main className="max-w-2xl mx-auto px-4 py-8">
         <StepIndicator current={step} />
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl shadow-md border border-gray-100/80 p-6 sm:p-8">
           {step === 1 && <IdUpload onExtracted={handleExtracted} />}
           {step === 2 && (
             <DataReview

@@ -13,7 +13,7 @@ const STEPS: Step[] = [
 
 export default function StepIndicator({ current }: { current: number }) {
   return (
-    <nav className="flex items-center justify-center gap-0 mb-8 select-none">
+    <nav className="flex items-center justify-center gap-0 mb-8 select-none" aria-label="Tiến trình">
       {STEPS.map((step, idx) => {
         const num = idx + 1;
         const done = num < current;
@@ -21,14 +21,13 @@ export default function StepIndicator({ current }: { current: number }) {
 
         return (
           <div key={num} className="flex items-center">
-            {/* Circle */}
             <div className="flex flex-col items-center">
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
                   done
-                    ? "bg-blue-600 text-white"
+                    ? "bg-cyan-600 text-white"
                     : active
-                    ? "bg-blue-600 text-white ring-4 ring-blue-100"
+                    ? "bg-rose-500 text-white ring-4 ring-rose-100"
                     : "bg-gray-200 text-gray-500"
                 }`}
               >
@@ -42,18 +41,17 @@ export default function StepIndicator({ current }: { current: number }) {
               </div>
               <span
                 className={`mt-1 text-xs font-medium whitespace-nowrap ${
-                  active ? "text-blue-600" : done ? "text-blue-500" : "text-gray-400"
+                  active ? "text-rose-600" : done ? "text-cyan-700" : "text-gray-400"
                 }`}
               >
                 {step.label}
               </span>
             </div>
 
-            {/* Connector line */}
             {idx < STEPS.length - 1 && (
               <div
                 className={`w-16 h-0.5 mx-1 mb-4 transition-colors ${
-                  num < current ? "bg-blue-600" : "bg-gray-200"
+                  num < current ? "bg-cyan-600" : "bg-gray-200"
                 }`}
               />
             )}

@@ -83,9 +83,9 @@ function Field({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-black placeholder:text-black focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+        className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-400/80 transition-colors"
       />
-      {hint && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
+      {hint && <p className="mt-0.5 text-xs text-gray-600">{hint}</p>}
     </div>
   );
 }
@@ -185,15 +185,31 @@ export default function ContractForm({ cccd, onBack }: Props) {
           {(["thue-nha", "dat-coc"] as ContractType[]).map((type) => (
             <button
               key={type}
+              type="button"
               onClick={() => set("loaiHopDong", type)}
-              className={`p-4 rounded-xl border-2 text-left transition-all ${
+              className={`relative p-4 rounded-2xl border-2 text-left transition-all shadow-sm ${
                 d.loaiHopDong === type
-                  ? "border-blue-600 bg-blue-50"
-                  : "border-gray-200 bg-white hover:border-blue-300"
+                  ? "border-rose-500 bg-rose-50/80 ring-1 ring-rose-200"
+                  : "border-gray-200 bg-gray-50/50 hover:border-rose-200 hover:bg-white"
               }`}
             >
+              {d.loaiHopDong === type && (
+                <span className="absolute top-2 right-2 text-rose-500" aria-hidden>
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+              )}
               <div className="text-2xl mb-1">{type === "thue-nha" ? "🏠" : "🤝"}</div>
-              <div className={`font-semibold text-sm ${d.loaiHopDong === type ? "text-blue-700" : "text-gray-700"}`}>
+              <div
+                className={`font-semibold text-sm text-gray-900 ${
+                  d.loaiHopDong === type ? "" : "text-gray-800"
+                }`}
+              >
                 {type === "thue-nha" ? "Hợp đồng thuê nhà" : "Hợp đồng đặt cọc"}
               </div>
             </button>
@@ -201,17 +217,32 @@ export default function ContractForm({ cccd, onBack }: Props) {
         </div>
       </div>
 
-      {/* Tenant summary */}
-      <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
-        <p className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-2">
+      {/* Tenant summary — explicit text colors so dark OS theme cannot wash out values */}
+      <div className="rounded-2xl bg-slate-100/90 border border-slate-200/80 p-4 text-gray-900">
+        <p className="text-xs font-bold text-sky-800 uppercase tracking-wide mb-3">
           Thông tin người thuê (từ CCCD)
         </p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <div><span className="text-gray-400">Họ tên:</span> <span className="font-medium">{cccd.hoTen || "–"}</span></div>
-          <div><span className="text-gray-400">Số CCCD:</span> <span className="font-medium">{cccd.soCanCuoc || "–"}</span></div>
-          <div><span className="text-gray-400">Ngày sinh:</span> <span className="font-medium">{cccd.ngaySinh || "–"}</span></div>
-          <div><span className="text-gray-400">Cấp ngày:</span> <span className="font-medium">{cccd.capNgay || "–"}</span></div>
-          <div className="col-span-2"><span className="text-gray-400">Thường trú:</span> <span className="font-medium">{cccd.thuongTru || "–"}</span></div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <div>
+            <span className="text-gray-600 font-medium">Họ tên:</span>{" "}
+            <span className="font-semibold text-black">{cccd.hoTen || "–"}</span>
+          </div>
+          <div>
+            <span className="text-gray-600 font-medium">Số CCCD:</span>{" "}
+            <span className="font-semibold text-black">{cccd.soCanCuoc || "–"}</span>
+          </div>
+          <div>
+            <span className="text-gray-600 font-medium">Ngày sinh:</span>{" "}
+            <span className="font-semibold text-black">{cccd.ngaySinh || "–"}</span>
+          </div>
+          <div>
+            <span className="text-gray-600 font-medium">Cấp ngày:</span>{" "}
+            <span className="font-semibold text-black">{cccd.capNgay || "–"}</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-gray-600 font-medium">Thường trú:</span>{" "}
+            <span className="font-semibold text-black">{cccd.thuongTru || "–"}</span>
+          </div>
         </div>
       </div>
 
@@ -235,7 +266,7 @@ export default function ContractForm({ cccd, onBack }: Props) {
           {d.nguoiOCung.length < 3 && (
             <button
               onClick={addCompanion}
-              className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+              className="text-xs text-sky-700 hover:text-sky-800 font-semibold flex items-center gap-1"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -281,7 +312,7 @@ export default function ContractForm({ cccd, onBack }: Props) {
                       value={c[f.key]}
                       placeholder={f.ph}
                       onChange={(e) => updateCompanion(idx, f.key, e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-black placeholder:text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-slate-50 text-sm text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-400/80"
                     />
                   </div>
                 ))}
@@ -367,7 +398,7 @@ export default function ContractForm({ cccd, onBack }: Props) {
         <button
           onClick={handleGenerate}
           disabled={!canGenerate || generating}
-          className="flex-1 h-12 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          className="flex-1 h-12 rounded-xl bg-sky-900 text-white font-semibold text-sm hover:bg-sky-950 active:bg-black disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-md"
         >
           {generating ? (
             <>

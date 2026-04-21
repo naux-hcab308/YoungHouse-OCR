@@ -64,19 +64,13 @@ export default function DataReview({ data, onChange, rawTextFront, rawTextBack, 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-800 mb-1">
-          Kiểm tra &amp; chỉnh sửa thông tin
-        </h2>
-        <p className="text-sm text-gray-500">
-          OCR đã nhận dạng được{" "}
-          <span
-            className={`font-semibold ${
-              filled === total ? "text-green-600" : "text-amber-600"
-            }`}
-          >
-            {filled}/{total}
-          </span>{" "}
-          trường. Chỉnh sửa trực tiếp bất kỳ trường nào nếu cần.
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Kiểm tra &amp; chỉnh sửa thông tin</h2>
+        <div className="inline-flex items-center gap-2 rounded-full bg-rose-50 border border-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 mb-2">
+          <span aria-hidden>✓</span>
+          OCR đã nhận dạng được {filled}/{total} trường
+        </div>
+        <p className="text-sm text-gray-600">
+          Chỉnh sửa trực tiếp bất kỳ trường nào nếu cần — đối chiếu với ảnh gốc.
         </p>
       </div>
 
@@ -102,14 +96,14 @@ export default function DataReview({ data, onChange, rawTextFront, rawTextBack, 
                 value={v}
                 placeholder={field.placeholder}
                 onChange={(e) => handleChange(field.key, e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg border text-sm text-black transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2.5 rounded-xl border text-sm font-semibold text-black transition-colors focus:outline-none focus:ring-2 focus:ring-rose-400/80 ${
                   empty
-                    ? "border-amber-300 bg-amber-50 placeholder:text-black"
-                    : "border-gray-300 bg-white placeholder:text-black"
+                    ? "border-amber-300 bg-amber-50 placeholder:text-gray-500"
+                    : "border-gray-200 bg-slate-100 placeholder:text-gray-500"
                 }`}
               />
               {field.hint && (
-                <p className="mt-0.5 text-xs text-gray-400">{field.hint}</p>
+                <p className="mt-0.5 text-xs text-gray-600">{field.hint}</p>
               )}
             </div>
           );
@@ -171,7 +165,7 @@ export default function DataReview({ data, onChange, rawTextFront, rawTextBack, 
         <button
           onClick={onNext}
           disabled={!hasMinRequired}
-          className="flex-1 h-12 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 h-12 rounded-xl bg-sky-900 text-white font-semibold text-sm hover:bg-sky-950 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-md"
         >
           Tiếp theo →
         </button>
