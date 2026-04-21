@@ -8,6 +8,12 @@ import IdUpload from "./components/IdUpload";
 import StepIndicator from "./components/StepIndicator";
 import type { CccdData } from "./types";
 
+const NAV_ITEMS = [
+  { id: "scan", label: "Scan Document", icon: "🪪", activeSteps: [1, 2] },
+  { id: "contracts", label: "Contracts", icon: "📄", activeSteps: [3] },
+  { id: "archive", label: "Archived", icon: "🗂", activeSteps: [] },
+];
+
 export default function Home() {
   const [step, setStep] = useState(1);
   const [cccdData, setCccdData] = useState<Partial<CccdData>>({});
@@ -22,57 +28,114 @@ export default function Home() {
     setStep(2);
   };
 
+  const stepTitle =
+    step === 1 ? "Identity Verification" : step === 2 ? "Verify Info" : "New Contract";
+
+  const stepSubtitle =
+    step === 1
+      ? "Upload front and back sides of CCCD for OCR extraction."
+      : step === 2
+      ? "Review detected fields and correct mismatched data."
+      : "Finalize contract details from verified tenant information.";
+
   return (
-    <div className="flex-1 bg-gradient-to-b from-slate-100 via-white to-cyan-50/40 min-h-full">
-      {/* Header */}
-      <header className="border-b border-gray-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-10 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="relative h-10 w-10 shrink-0 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center p-1">
-            <Image
-              src="/younghouse-logo.png"
-              alt="Younghouse"
-              width={36}
-              height={36}
-              className="object-contain h-9 w-9"
-              priority
-            />
+    <div className="min-h-screen bg-[#f6f9fc] text-slate-900">
+      <div className="mx-auto flex min-h-screen max-w-[1720px]">
+        <aside className="hidden w-[255px] border-r border-slate-200 bg-white xl:flex xl:flex-col">
+          <div className="border-b border-slate-200 px-6 py-5">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/younghouse-logo.png"
+                alt="YoungHouse"
+                width={44}
+                height={44}
+                className="h-11 w-11 rounded-xl border border-slate-100 bg-white object-contain p-1 shadow-sm"
+              />
+              <div>
+                <p className="text-[26px] font-bold leading-none text-[#00528f]">YoungHouse</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  OCR Platform
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <h1 className="text-base font-bold text-sky-900 leading-tight">ORC – Quét hợp đồng</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Nhận dạng CCCD & tạo hợp đồng thuê nhà</p>
+          <nav className="flex-1 space-y-1 p-4">
+            {NAV_ITEMS.map((item) => {
+              const active = item.activeSteps.includes(step);
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${
+                    active
+                      ? "bg-gradient-to-r from-cyan-50 to-rose-50 text-sky-900 shadow-sm ring-1 ring-cyan-100"
+                      : "text-slate-500 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+          <div className="border-t border-slate-100 p-4">
+            <button
+              type="button"
+              className="h-12 w-full rounded-full bg-gradient-to-r from-[#016bb4] to-[#0092d1] text-sm font-semibold text-white shadow-lg shadow-cyan-200/60"
+            >
+              New Contract
+            </button>
           </div>
-        </div>
-      </header>
+        </aside>
 
-      {/* Main */}
-      <main className="max-w-2xl mx-auto px-4 py-8">
-        <StepIndicator current={step} />
+        <main className="min-w-0 flex-1">
+          <header className="sticky top-0 z-10 border-b border-slate-200/90 bg-white/90 backdrop-blur">
+            <div className="flex items-center justify-between gap-4 px-5 py-4 xl:px-8">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="relative h-11 w-11 shrink-0 rounded-xl border border-slate-200 bg-white p-1 shadow-sm xl:hidden">
+                  <Image src="/younghouse-logo.png" alt="YoungHouse" width={40} height={40} className="h-full w-full object-contain" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-2xl font-bold text-[#083f6b]">{stepTitle}</p>
+                  <p className="truncate text-sm text-slate-500">{stepSubtitle}</p>
+                </div>
+              </div>
+              <div className="hidden w-full max-w-md items-center gap-2 rounded-full bg-slate-100 px-4 py-2.5 lg:flex">
+                <span aria-hidden className="text-slate-400">🔎</span>
+                <input
+                  className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                  placeholder="Search contracts..."
+                />
+              </div>
+            </div>
+          </header>
 
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100/80 p-6 sm:p-8">
-          {step === 1 && <IdUpload onExtracted={handleExtracted} />}
-          {step === 2 && (
-            <DataReview
-              data={cccdData}
-              onChange={setCccdData}
-              rawTextFront={rawText.front}
-              rawTextBack={rawText.back}
-              onBack={() => setStep(1)}
-              onNext={() => setStep(3)}
-            />
-          )}
-          {step === 3 && (
-            <ContractForm
-              cccd={cccdData}
-              onBack={() => setStep(2)}
-            />
-          )}
-        </div>
+          <section className="px-5 py-6 xl:px-8 xl:py-8">
+            <div className="mb-6 rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+              <StepIndicator current={step} />
+            </div>
 
-        {/* Info footer */}
-        <p className="text-center text-xs text-gray-400 mt-6">
-          Dữ liệu được xử lý cục bộ • Không lưu trữ thông tin cá nhân
-        </p>
-      </main>
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm xl:p-8">
+              {step === 1 && <IdUpload onExtracted={handleExtracted} />}
+              {step === 2 && (
+                <DataReview
+                  data={cccdData}
+                  onChange={setCccdData}
+                  rawTextFront={rawText.front}
+                  rawTextBack={rawText.back}
+                  onBack={() => setStep(1)}
+                  onNext={() => setStep(3)}
+                />
+              )}
+              {step === 3 && <ContractForm cccd={cccdData} onBack={() => setStep(2)} />}
+            </div>
+
+            <p className="mt-6 text-center text-xs font-medium text-slate-400">
+              Dữ liệu được xử lý cục bộ • Không lưu trữ thông tin cá nhân
+            </p>
+          </section>
+        </main>
+      </div>
     </div>
   );
 }

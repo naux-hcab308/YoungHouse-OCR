@@ -149,7 +149,7 @@ export default function IdUpload({ onExtracted }: Props) {
       </div>
 
       {/* Front and back upload */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_auto_1fr] xl:items-center">
         <UploadCard
           title="Mặt trước"
           preview={frontPreview}
@@ -162,6 +162,15 @@ export default function IdUpload({ onExtracted }: Props) {
           onClick={() => !processing && frontInputRef.current?.click()}
           onChange={(e) => handleInputChange(e, "front")}
         />
+        <div className="hidden xl:flex xl:flex-col xl:items-center xl:gap-3">
+          <div className="h-16 w-1 rounded-full bg-slate-200">
+            <div className="h-1/2 w-full rounded-full bg-gradient-to-b from-sky-700 to-rose-500" />
+          </div>
+          <span className="text-xs font-bold uppercase tracking-[0.12em] text-rose-600">50% complete</span>
+          <p className="max-w-32 rounded-xl bg-rose-50 px-3 py-2 text-center text-xs font-medium text-rose-700">
+            Tránh ảnh bị loá để OCR nhận dạng chính xác hơn.
+          </p>
+        </div>
         <UploadCard
           title="Mặt sau"
           preview={backPreview}
@@ -296,7 +305,7 @@ function UploadCard({
             )}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+          <div className="flex min-h-[250px] flex-col items-center justify-center py-12 px-4 text-center">
             <div className="w-14 h-14 rounded-full bg-sky-100 flex items-center justify-center mb-3 ring-4 ring-sky-50">
               <svg className="w-7 h-7 text-sky-700" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                 <path

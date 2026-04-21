@@ -13,7 +13,7 @@ const STEPS: Step[] = [
 
 export default function StepIndicator({ current }: { current: number }) {
   return (
-    <nav className="flex items-center justify-center gap-0 mb-8 select-none" aria-label="Tiến trình">
+    <nav className="flex items-center justify-start gap-0 select-none overflow-x-auto" aria-label="Tiến trình">
       {STEPS.map((step, idx) => {
         const num = idx + 1;
         const done = num < current;
@@ -23,12 +23,12 @@ export default function StepIndicator({ current }: { current: number }) {
           <div key={num} className="flex items-center">
             <div className="flex flex-col items-center">
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
                   done
-                    ? "bg-cyan-600 text-white"
+                    ? "bg-[#006da6] text-white"
                     : active
-                    ? "bg-rose-500 text-white ring-4 ring-rose-100"
-                    : "bg-gray-200 text-gray-500"
+                    ? "bg-[#cf0f75] text-white ring-4 ring-rose-100"
+                    : "bg-slate-100 text-slate-500"
                 }`}
               >
                 {done ? (
@@ -40,8 +40,8 @@ export default function StepIndicator({ current }: { current: number }) {
                 )}
               </div>
               <span
-                className={`mt-1 text-xs font-medium whitespace-nowrap ${
-                  active ? "text-rose-600" : done ? "text-cyan-700" : "text-gray-400"
+                className={`mt-2 text-xs font-semibold whitespace-nowrap uppercase tracking-[0.08em] ${
+                  active ? "text-[#cf0f75]" : done ? "text-[#006da6]" : "text-slate-400"
                 }`}
               >
                 {step.label}
@@ -50,8 +50,8 @@ export default function StepIndicator({ current }: { current: number }) {
 
             {idx < STEPS.length - 1 && (
               <div
-                className={`w-16 h-0.5 mx-1 mb-4 transition-colors ${
-                  num < current ? "bg-cyan-600" : "bg-gray-200"
+                className={`mx-2 mb-5 h-0.5 w-20 transition-colors ${
+                  num < current ? "bg-[#006da6]" : "bg-slate-200"
                 }`}
               />
             )}
