@@ -109,34 +109,32 @@ function point(letter: string, text: string): Paragraph {
 // ─── Companion block ─────────────────────────────────────────────────────────
 
 function companionBlock(n: number, c: Partial<CompanionInfo>): Paragraph[] {
-  const dash = "…………………………………";
-  const shortDash = "………………………";
   return [
     mixedPar([
       { text: `${n}. Ông/ bà:`, bold: false },
-      { text: val(c.hoTen, dash + dash), bold: false },
+      { text: val(c.hoTen), bold: false },
       { text: "  Số Điện thoại:", bold: false },
-      { text: val(c.soDienThoai, shortDash), bold: false },
+      { text: val(c.soDienThoai), bold: false },
     ]),
     mixedPar([
       { text: "Số CCCD/HC: " },
-      { text: val(c.soCCCD, dash) },
+      { text: val(c.soCCCD) },
       { text: "  Cấp ngày:" },
-      { text: val(c.capNgay, shortDash) },
+      { text: val(c.capNgay) },
       { text: "  Tại: " },
-      { text: val(c.capTai, shortDash) },
+      { text: val(c.capTai) },
     ]),
     mixedPar([
       { text: "Ngày/tháng/năm sinh: " },
-      { text: val(c.ngaySinh, dash) },
+      { text: val(c.ngaySinh) },
     ]),
     mixedPar([
       { text: "Hộ khẩu thường trú:" },
-      { text: val(c.hoKhau, dash + dash + dash) },
+      { text: val(c.hoKhau) },
     ]),
     mixedPar([
       { text: "Số điện thoại người thân khi cần liên lạc:" },
-      { text: val(c.sdtNguoiThan, dash + dash) },
+      { text: val(c.sdtNguoiThan) },
     ]),
   ];
 }
@@ -193,6 +191,7 @@ export async function generateRentalContract(
             italic: true,
           }),
           blank(),
+          blank(),
           par("HỢP ĐỒNG THUÊ NHÀ", {
             bold: true,
             center: true,
@@ -221,7 +220,6 @@ export async function generateRentalContract(
             { text: val(d.benA_diaChi, "Số 85 Đường Mục Uyên - Công Nghệ, Xã Hạ Bằng, Thành phố Hà Nội") },
           ]),
           par("Chúng tôi gồm có:"),
-          blank(),
 
           // ── BÊN A ────────────────────────────────────────────────────
           mixedPar([
@@ -243,45 +241,41 @@ export async function generateRentalContract(
             { text: "Số điện thoại: " },
             { text: val(d.benA_sdt, "0962 888 797") },
           ]),
-          blank(),
 
           // ── BÊN B ────────────────────────────────────────────────────
           par("BÊN THUÊ NHÀ (BÊN B):", { bold: true }),
           mixedPar([
             { text: "Ông/ bà: " },
-            { text: val(cccd.hoTen, dash + dash) },
+            { text: val(cccd.hoTen) },
             { text: "  Số Điện thoại:" },
-            { text: val(d.benB_sdt, shortDash) },
+            { text: val(d.benB_sdt) },
           ]),
           mixedPar([
             { text: "Số CCCD/HC: " },
-            { text: val(cccd.soCanCuoc, shortDash) },
+            { text: val(cccd.soCanCuoc) },
             { text: "  Cấp ngày:" },
-            { text: val(cccd.capNgay, shortDash) },
+            { text: val(cccd.capNgay) },
             { text: "  Tại: " },
-            { text: val(cccd.capTai, shortDash) },
+            { text: val(cccd.capTai) },
           ]),
           mixedPar([
             { text: "Ngày/tháng/năm sinh: " },
-            { text: val(cccd.ngaySinh, dash) },
+            { text: val(cccd.ngaySinh) },
           ]),
           mixedPar([
             { text: "Hộ khẩu thường trú:" },
-            { text: val(cccd.thuongTru, dash + dash + dash) },
+            { text: val(cccd.thuongTru) },
           ]),
           mixedPar([
             { text: "Số điện thoại người thân khi cần liên lạc:" },
-            { text: val(d.benB_sdtNguoiThan, dash + dash) },
+            { text: val(d.benB_sdtNguoiThan) },
           ]),
-          blank(),
 
           // Companions
           par("Người ở cùng:", { bold: true }),
           ...companionParagraphs,
-          blank(),
 
           par("Sau khi bàn bạc hai bên thống nhất đi đến ký kết Hợp đồng thuê nhà với các nội dung sau:"),
-          blank(),
 
           // ── Điều 1 ───────────────────────────────────────────────────
           article(1, "ĐỐI TƯỢNG HỢP ĐỒNG CHO THUÊ:"),
@@ -296,24 +290,22 @@ export async function generateRentalContract(
           par("1.3. Bên B thuê phòng mục đích sử dụng là để ở."),
           mixedPar([
             { text: "1.4. Số lượng xe máy:" },
-            { text: val(d.soXeMay, "……………") },
+            { text: val(d.soXeMay, "") },
             { text: "  Biển số xe: " },
-            { text: val(d.bienSoXe, "…………………………………") },
+            { text: val(d.bienSoXe, "") },
           ]),
-          blank(),
 
           // ── Điều 2 ───────────────────────────────────────────────────
           article(2, "TÀI SẢN VÀ TRANG THIẾT BỊ GẮN LIỀN VỚI NHÀ"),
           par("2.1. Các thiết bị trong phòng bao gồm: ..............Theo Bảng Kê..................................."),
           par("2.2. Các thiết bị trong nhà vệ sinh bao gồm: Đèn nhà vệ sinh, 1 chậu rửa mặt, vòi hoa sen, 01 bồn cầu, vòi xịt, giá để xà phòng, gương soi………………………"),
           par("Tất cả các thiết bị trên đã bàn giao cho Bên B đều hoạt động bình thường. Mọi hư hỏng trong quá trình sử dụng Bên B phải tự bỏ tiền sửa chữa, thay thế, hoặc bồi thường cho Bên A."),
-          blank(),
 
           // ── Điều 3 ───────────────────────────────────────────────────
           article(3, "GIÁ NHÀ CHO THUÊ VÀ PHƯƠNG THỨC THANH TOÁN"),
           mixedPar([
             { text: "3.1. Giá cho thuê phòng là : " },
-            { text: val(d.giaThue, "………………………………"), bold: true },
+            { text: val(d.giaThue, ""), bold: true },
             { text: " VNĐ/1 tháng." },
           ]),
           mixedPar([
@@ -327,7 +319,6 @@ export async function generateRentalContract(
             { text: val(d.ngayGiaKhongDoiDen, dash) },
             { text: " Sau khi kết thúc hợp đồng, nếu bên B tiếp tục thuê phòng của bên A, hai bên sẽ thỏa thuận về giá thuê mới." },
           ]),
-          blank(),
           mixedPar([
             { text: "3.2. Số tiền đặt cọc: " },
             { text: val(d.tienCoc, "………………………………"), bold: true },
@@ -339,20 +330,17 @@ export async function generateRentalContract(
             { text: ")" },
           ]),
           par("Tiền đặt cọc sẽ được Bên A trả lại cho Bên B khi:"),
-          par("- Bên B kết thúc Hợp đồng đúng thời hạn và không có phát sinh nào xảy ra.", { indent: cm(0.5) }),
-          par("- Khi kết thúc hợp đồng, bên B thông báo cho bên A trước ít nhất 30 ngày.", { indent: cm(0.5) }),
-          par("- Bên B không vi phạm điều khoản nào trong hợp đồng này.", { indent: cm(0.5) }),
+          par("* Bên B kết thúc Hợp đồng đúng thời hạn và không có phát sinh nào xảy ra.", { indent: cm(0.5) }),
+          par("* Khi kết thúc hợp đồng, bên B thông báo cho bên A trước ít nhất 30 ngày.", { indent: cm(0.5) }),
+          par("* Bên B không vi phạm điều khoản nào trong hợp đồng này.", { indent: cm(0.5) }),
           par("Nếu Bên B vi phạm nội dung Hợp đồng hoặc đơn phương chấm dứt Hợp đồng trước thời hạn thì phải chịu mất hoàn toàn số tiền đặt cọc."),
-          blank(),
           mixedPar([
             { text: "3.3 Phí quản lý tòa nhà: " },
             { text: val(d.phiQuanLy, "…………") },
             { text: " đồng/người/tháng." },
           ]),
           par("Chú ý: Tiền quản lý chung đã bao gồm các khoản khấu hao các thiết bị sử dụng chung."),
-          blank(),
           par("3.4 Đối với tiền Điện: Bên B thu hộ tiền điện và nộp lại cho EVN theo quy định của nhà nước. Tiền điện gồm điện sử dụng trong phòng ở của khách hàng và điện phát sinh từ khu vực sinh hoạt chung (không quá 3.200 đồng/số)."),
-          blank(),
           mixedPar([
             { text: "3.5. Phương thức thanh toán: " },
             { text: val(d.phuongThucThanhToan, "……") },
@@ -367,7 +355,6 @@ export async function generateRentalContract(
             { text: val(d.dot1HanChot, shortDash) },
           ]),
           par("- Các đợt thanh toán tiếp theo sẽ thanh toán vào các ngày từ ngày 25 đến ngày 30 tháng trước. Trường hợp đến hạn thanh toán tiền nhà, nếu quá 3 ngày Bên B không nộp tiền nhà thì coi như Bên B đơn phương chấm dứt Hợp đồng và không được trả lại tiền đặt cọc, Bên A có quyền trục xuất các đồ đạc của Bên B ra ngoài và không chịu bất cứ vấn đề gì liên quan đến tài sản của Bên B."),
-          blank(),
 
           // ── Điều 4 ───────────────────────────────────────────────────
           article(4, "THỜI ĐIỂM GIAO NHẬN NHÀ VÀ THỜI HẠN CHO THUÊ"),
@@ -386,7 +373,6 @@ export async function generateRentalContract(
             { text: " năm " },
             { text: namKT, bold: true },
           ]),
-          blank(),
           sub("4.2. Điều khoản về việc chấm dứt Hợp đồng thuê nhà và gia hạn hợp đồng thuê nhà:"),
           par("- Hợp đồng chấm dứt khi:"),
           par("+ Khi hết hạn Hợp đồng thuê nhà, Bên B báo trước cho Bên A 30 ngày và bàn giao nhà cho Bên A muộn không quá 01 ngày so với ngày kết thúc hợp đồng Bên B mới được nhận lại cọc.", { indent: cm(0.5) }),
@@ -395,15 +381,12 @@ export async function generateRentalContract(
           par("+ Nhà ở cho thuê phải phá dỡ hoặc do thực hiện quy hoạch xây dựng của nhà nước;", { indent: cm(0.5) }),
           par("+ Hai bên không thỏa thuận được về mức tăng tiền nhà sau khi kết thúc hợp đồng;", { indent: cm(0.5) }),
           par("+ Khi một trong hai bên vi phạm các điều khoản hợp đồng…", { indent: cm(0.5) }),
-          blank(),
           par("- Trường hợp Bên B thanh lý hợp đồng trước hạn:"),
           par("+ Bên A tạo điều kiện cho Bên B tự tìm người thay thế.", { indent: cm(0.5) }),
           par("+ Trường hợp Bên B nhờ Bên A tìm khách thay thế: phí sale phòng là 50% của tiền cọc phòng.", { indent: cm(0.5) }),
           par("+ Khi khách mới (do Bên A hoặc Bên B tìm) ký hợp đồng, Bên B sẽ được nhận lại cọc (sau khi trừ các chi phí – nếu có). Tiền thuê nhà tính từ ngày đầu tiên khách mới ký hợp đồng và thanh toán tiền thuê nhà cho Bên A.", { indent: cm(0.5) }),
           par("+ Nếu Bên B thanh lý hợp đồng thuê nhà trước hạn mà không tìm được khách mới thay thế, Bên B sẽ mất cọc. Mọi chi phí phát sinh của bên B (hỏng đồ đạc, tiền điện…), bên B phải chịu hoặc được trừ vào tiền nhà bên B đã đóng nhưng chưa sử dụng (nếu có).", { indent: cm(0.5) }),
-          blank(),
           par("- Vì 1 lý do nào đó, bên A muốn lấy lại phòng phải thông báo cho bên B trước ít nhất 15 ngày. Bên A sẽ trả lại tiền cọc cho bên B và tiền thuê nhà bên B đóng còn thừa (nếu có), sau khi đã trừ các chi phí phát sinh."),
-          blank(),
 
           // ── Điều 5 ───────────────────────────────────────────────────
           article(5, "QUYỀN VÀ NGHĨA VỤ BÊN A"),
@@ -412,7 +395,6 @@ export async function generateRentalContract(
           point("b", "Yêu cầu Bên thuê có trách nhiệm trong việc sửa chữa phần hư hỏng, bồi thường thiệt hại do lỗi của Bên thuê gây ra."),
           point("c", "Nhận lại nhà trong các trường hợp chấm dứt Hợp đồng thuê nhà."),
           point("d", "Được lấy lại phòng cho thuê khi báo cho bên B trước 15 ngày. Bên A trả lại cọc và tiền nhà chưa sử dụng (nếu có) cho bên B sau khi đã trừ các chi phí phát sinh, và không phải đền bù theo các điều khoản khác."),
-          blank(),
           sub("5.2. Nghĩa vụ của Bên cho thuê:"),
           point("a", "Giao nhà ở và trang thiết bị gắn liền với nhà ở (nếu có) cho Bên thuê đúng ngày quy định của Hợp đồng này."),
           point("b", "Phổ biến cho Bên thuê Nội quy về quản lý sử dụng nhà ở tại tòa nhà."),
@@ -421,7 +403,6 @@ export async function generateRentalContract(
           point("đ", "Sửa chữa nhà khi có những hư hỏng khách quan không do Bên B gây ra. Hoặc khi bên B mới nhận phòng, trong vòng 30 ngày (kể từ ngày bên A bàn giao nhà cho bên B) thì Bên A sẽ sửa chữa những hư hỏng thiết bị miễn phí."),
           point("e", "Yêu cầu bên B giữ gìn nhà và có trách nhiệm trong việc sửa chữa những hư hỏng do mình gây ra."),
           point("f", "Cam kết thực hiện đúng Hợp đồng này như đã thỏa thuận với Bên B."),
-          blank(),
 
           // ── Điều 6 ───────────────────────────────────────────────────
           article(6, "QUYỀN VÀ NGHĨA VỤ BÊN B"),
@@ -429,7 +410,6 @@ export async function generateRentalContract(
           point("a", "Nhận nhà ở và trang thiết bị (nếu có) theo đúng ngày quy định tại khoản 5.1 điều 5 của Hợp đồng này."),
           point("b", "Yêu cầu Bên cho thuê sửa chữa kịp thời những hư hỏng không phải do bên thuê gây ra để bảo đảm an toàn."),
           point("c", "Đơn phương chấm dứt Hợp đồng thuê nhà khi Bên cho thuê có một trong các hành vi vi phạm quy định của hợp đồng."),
-          blank(),
           sub("6.2. Nghĩa vụ của Bên thuê:"),
           point("a", "Trả đủ tiền thuê nhà đúng thời hạn ghi trong Hợp đồng (5 ngày kể từ ngày nhận phiếu thu). Nếu trả muộn sẽ bị phạt theo quy định."),
           point("b", "Sử dụng nhà không được có các hành vi vi phạm pháp luật; giữ gìn nhà ở và có trách nhiệm trong việc sửa chữa những hư hỏng, mất mát tài sản mà bên A đã bàn giao. Bảo dưỡng điều hòa, nóng lạnh theo thời hạn là 1 lần/1 thời hạn hợp đồng, có sự chứng kiến của bên cho thuê (nếu không thì bên cho thuê tự gọi thợ bảo dưỡng và chi phí bên thuê phải trả)."),
@@ -449,7 +429,6 @@ export async function generateRentalContract(
           point("q", "Không tổ chức tụ tập, ồn ào sau 22h00 đêm tránh ảnh hưởng tới các cư dân khác và hàng xóm xung quanh. Nếu vi phạm, bên B sẽ bị xử lý theo Nội quy của tòa nhà."),
           point("r", "Tự chịu trách nhiệm trước pháp luật về các hành vi vi phạm pháp luật do mình gây ra, tự bảo quản tài sản cá nhân của mình như quần áo, vật dụng trong và ngoài phòng. Ban quản lý tòa nhà không chịu trách nhiệm với bất kỳ mất mát nào."),
           point("s", "Bên B khi kết thúc hợp đồng phải bàn giao lại phòng cho bên A theo đúng hiện trạng ban đầu: nhà sạch, tường sạch, thiết bị còn sử dụng tốt… Nếu phòng bẩn, tường bẩn, thiết bị hỏng mà bên B không sửa chữa, bên A sẽ sửa và trừ vào tiền đặt cọc của bên B."),
-          blank(),
 
           // ── Điều 7 ───────────────────────────────────────────────────
           article(7, "CAM KẾT CÁC BÊN"),
@@ -472,16 +451,6 @@ export async function generateRentalContract(
             children: [
               new TextRun({ text: "         (Ký, đóng dấu, ghi rõ họ tên)", font: FONT, size: SZ, italics: true }),
               new TextRun({ text: "                         (Ký, ghi rõ họ tên)", font: FONT, size: SZ, italics: true }),
-            ],
-          }),
-          blank(),
-          blank(),
-          blank(),
-          new Paragraph({
-            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
-            children: [
-              new TextRun({ text: `         ${val(d.benA_ten, "YOUNG HOUSE")}`, bold: true, font: FONT, size: SZ }),
-              new TextRun({ text: `                                        ${val(cccd.hoTen, "………………………………")}`, font: FONT, size: SZ }),
             ],
           }),
         ],
@@ -562,15 +531,8 @@ export async function generateDepositContract(
               new TextRun({ text: "         ĐẠI DIỆN BÊN A", bold: true, font: FONT, size: SZ }),
               new TextRun({ text: "                                        ĐẠI DIỆN BÊN B", bold: true, font: FONT, size: SZ }),
             ],
-          }),
-          blank(), blank(), blank(),
-          new Paragraph({
-            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
-            children: [
-              new TextRun({ text: `         ${val(d.benA_ten, "YOUNG HOUSE")}`, bold: true, font: FONT, size: SZ }),
-              new TextRun({ text: `                                        ${val(cccd.hoTen)}`, font: FONT, size: SZ }),
-            ],
-          }),
+          })
+          
         ],
       },
     ],

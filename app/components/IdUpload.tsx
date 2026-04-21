@@ -9,6 +9,7 @@ interface Props {
 
 export default function IdUpload({ onExtracted }: Props) {
   const [cardType, setCardType] = useState<"old" | "new">("new");
+  const [provider, setProvider] = useState<"fpt" | "textract">("fpt");
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
   const [backPreview, setBackPreview] = useState<string | null>(null);
   const [frontFile, setFrontFile] = useState<File | null>(null);
@@ -76,6 +77,7 @@ export default function IdUpload({ onExtracted }: Props) {
       formData.append("imageFront", frontFile);
       formData.append("imageBack", backFile);
       formData.append("cardType", cardType);
+      formData.append("provider", provider);
 
       setStatusMsg("Đang nhận dạng ký tự (OCR)...");
       const res = await fetch("/api/ocr", { method: "POST", body: formData });
@@ -146,6 +148,54 @@ export default function IdUpload({ onExtracted }: Props) {
             CCCD cũ
           </button>
         </div>
+      </div>
+
+      {/* OCR provider toggle */}
+      <div className="space-y-2">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Nhà cung cấp OCR</p>
+        <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-1">
+          <button
+            type="button"
+            onClick={() => setProvider("fpt")}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all ${
+              provider === "fpt"
+                ? "bg-white text-sky-700 shadow-sm ring-1 ring-sky-200"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <span className="text-base" aria-hidden>🤖</span>
+            FPT AI
+            {provider === "fpt" && (
+              <span className="rounded-full bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold text-sky-600">
+                ACTIVE
+              </span>
+            )}
+          </button>
+          {/* visual divider */}
+          <div className="h-5 w-px bg-gray-200" />
+          <button
+            type="button"
+            onClick={() => setProvider("textract")}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all ${
+              provider === "textract"
+                ? "bg-white text-orange-700 shadow-sm ring-1 ring-orange-200"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <span className="text-base" aria-hidden>☁️</span>
+            AWS Textract
+            {provider === "textract" && (
+              <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-600">
+                ACTIVE
+              </span>
+            )}
+          </button>
+        </div>
+        <p className="text-[11px] text-gray-400">
+          {provider === "fpt"
+            ? "FPT AI — trả về dữ liệu có cấu trúc, hỗ trợ CCCD chip 2024. ~1.000đ/lần quét."
+            : "AWS Textract — OCR thô + AI parse, yêu cầu AWS credentials."}
+        </p>
       </div>
 
       {/* Front and back upload */}
