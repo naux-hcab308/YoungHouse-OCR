@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { extractCccdWithFpt } from "@/app/lib/fptOcr";
 import { normalizeWithAi } from "@/app/lib/normalizeWithAi";
+import type { CccdData } from "@/app/types";
 import sharp from "sharp";
 
 export const runtime = "nodejs";
@@ -27,7 +28,8 @@ export async function POST(request: NextRequest) {
 
   const front    = formData.get("imageFront") as File | null;
   const back     = formData.get("imageBack")  as File | null;
-  const cardType = formData.get("cardType");
+  const cardType = formData.get("cardType") as string | null;
+  const provider = (formData.get("provider") as string | null) ?? "fpt";
 
   if (!front || !back) {
     return Response.json(
@@ -40,9 +42,6 @@ export async function POST(request: NextRequest) {
       { error: "File không hợp lệ. Vui lòng upload ảnh (JPEG/PNG/WEBP)." },
       { status: 400 }
     );
-  }
-  if (cardType !== "old" && cardType !== "new") {
-    return Response.json({ error: "Loại CCCD không hợp lệ." }, { status: 400 });
   }
 
   try {
@@ -64,7 +63,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error("[OCR] error:", err);
     return Response.json(
-      { error: "Không thể xử lý ảnh. Vui lòng thử lại với ảnh rõ hơn." },
+      { error: err instanceof Error ? err.message : "Không thể xử lý ảnh. Vui lòng thử lại." },
       { status: 500 }
     );
   }
