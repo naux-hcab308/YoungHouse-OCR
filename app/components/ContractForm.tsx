@@ -5,6 +5,9 @@ import type { CccdData, CompanionInfo, ContractDetails, ContractType } from "../
 import {
   generateDepositContract,
   generateRentalContract,
+  generateAppendix,
+  generateFireSafetyCommitment,
+  generateHouseRulesCommitment,
 } from "../lib/generateContract";
 
 // ── Default state ──────────────────────────────────────────────────────────────
@@ -120,6 +123,9 @@ export default function ContractForm({ cccd, rawText, onBack }: Props) {
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [showAdditionalModal, setShowAdditionalModal] = useState(false);
+  const [selectedAdditional, setSelectedAdditional] = useState<Set<string>>(new Set());
+  const [generatingAdditional, setGeneratingAdditional] = useState(false);
 
   const set = <K extends keyof ContractDetails>(key: K, value: ContractDetails[K]) =>
     setD((prev) => ({ ...prev, [key]: value }));
@@ -140,6 +146,16 @@ export default function ContractForm({ cccd, rawText, onBack }: Props) {
 
   const canGenerate = !!(d.soPhong.trim() && d.giaThue.trim() && d.ngayBatDau.trim());
 
+  // Download single file helper
+  const downloadFile = async (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleGenerate = async () => {
     setGenerating(true);
     setError("");
@@ -156,13 +172,12 @@ export default function ContractForm({ cccd, rawText, onBack }: Props) {
           ? `HDTN_${d.soPhong || "phong"}_${safeName}.docx`
           : `HDDC_${d.soPhong || "phong"}_${safeName}.docx`;
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      link.click();
-      URL.revokeObjectURL(url);
-      setDone(true);
+      // Download the main document
+      await downloadFile(blob, fileName);
+      
+      // Reset selected additional documents and show modal
+      setSelectedAdditional(new Set());
+      setShowAdditionalModal(true);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Không thể tạo file. Vui lòng thử lại."
@@ -170,6 +185,65 @@ export default function ContractForm({ cccd, rawText, onBack }: Props) {
     } finally {
       setGenerating(false);
     }
+  };
+
+  // Handle additional documents download
+  const handleDownloadAdditional = async () => {
+    if (selectedAdditional.size === 0) {
+      setDone(true);
+      setShowAdditionalModal(false);
+      return;
+    }
+
+    setGeneratingAdditional(true);
+    try {
+      const safeName = cccd.hoTen?.replace(/\s+/g, "-") ?? "khach";
+      
+      for (const docType of selectedAdditional) {
+        let blob: Blob;
+        let fileName: string;
+
+        switch (docType) {
+          case "phu-luc":
+            blob = await generateAppendix(cccd, d);
+            fileName = `PhuLuc_${d.soPhong || "phong"}_${safeName}.docx`;
+            break;
+          case "cam-ket-chay":
+            blob = await generateFireSafetyCommitment(cccd, d);
+            fileName = `CamKetPCCC_${d.soPhong || "phong"}_${safeName}.docx`;
+            break;
+          case "cam-ket-noi-quy":
+            blob = await generateHouseRulesCommitment(cccd, d);
+            fileName = `CamKetNoiQuy_${d.soPhong || "phong"}_${safeName}.docx`;
+            break;
+          default:
+            continue;
+        }
+
+        await downloadFile(blob, fileName);
+        // Add small delay between downloads for better UX
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      setDone(true);
+      setShowAdditionalModal(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Không thể tạo file bổ sung. Vui lòng thử lại."
+      );
+    } finally {
+      setGeneratingAdditional(false);
+    }
+  };
+
+  const toggleAdditionalDoc = (docType: string) => {
+    const newSet = new Set(selectedAdditional);
+    if (newSet.has(docType)) {
+      newSet.delete(docType);
+    } else {
+      newSet.add(docType);
+    }
+    setSelectedAdditional(newSet);
   };
 
   // Contract types with info
@@ -494,6 +568,113 @@ export default function ContractForm({ cccd, rawText, onBack }: Props) {
             <div className="text-center">
               <p className="text-lg font-semibold text-gray-700 mb-2">Chọn một loại tài liệu</p>
               <p className="text-sm text-gray-500">Chức năng này sẽ được cập nhật sớm.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Additional Documents */}
+        {showAdditionalModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 border-b border-gray-200 bg-white p-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Tài liệu bổ sung</h2>
+                  <p className="text-sm text-gray-500 mt-1">Chọn các loại tài liệu khác muốn in cùng</p>
+                </div>
+                <button
+                  onClick={() => setShowAdditionalModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Appendix */}
+                <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={selectedAdditional.has("phu-luc")}
+                    onChange={() => toggleAdditionalDoc("phu-luc")}
+                    className="w-5 h-5 mt-0.5 rounded border-gray-300 text-sky-700 focus:ring-sky-500"
+                  />
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900">📎 Phụ lục hợp đồng</p>
+                    <p className="text-sm text-gray-600 mt-0.5">Bảng kê thiết bị & điều khoản bổ sung</p>
+                  </div>
+                </label>
+
+                {/* Fire Safety */}
+                <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={selectedAdditional.has("cam-ket-chay")}
+                    onChange={() => toggleAdditionalDoc("cam-ket-chay")}
+                    className="w-5 h-5 mt-0.5 rounded border-gray-300 text-sky-700 focus:ring-sky-500"
+                  />
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900">🔥 Cam kết an toàn PCCC</p>
+                    <p className="text-sm text-gray-600 mt-0.5">Cam kết tuân thủ quy tắc phòng cháy chữa cháy</p>
+                  </div>
+                </label>
+
+                {/* House Rules */}
+                <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={selectedAdditional.has("cam-ket-noi-quy")}
+                    onChange={() => toggleAdditionalDoc("cam-ket-noi-quy")}
+                    className="w-5 h-5 mt-0.5 rounded border-gray-300 text-sky-700 focus:ring-sky-500"
+                  />
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900">📋 Cam kết nội quy tòa nhà</p>
+                    <p className="text-sm text-gray-600 mt-0.5">Cam kết tuân thủ các quy định nội quy</p>
+                  </div>
+                </label>
+
+                {selectedAdditional.size > 0 && (
+                  <div className="flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 text-sm text-sky-800">
+                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2z" clipRule="evenodd" />
+                    </svg>
+                    <span>Sẽ tải xuống <strong>{selectedAdditional.size}</strong> tài liệu bổ sung</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="sticky bottom-0 border-t border-gray-200 bg-gray-50 p-6 flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowAdditionalModal(false);
+                    setDone(true);
+                  }}
+                  className="flex-1 h-11 rounded-xl border border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-100 transition-colors"
+                >
+                  Bỏ qua
+                </button>
+                <button
+                  onClick={handleDownloadAdditional}
+                  disabled={generatingAdditional}
+                  className="flex-1 h-11 rounded-xl bg-sky-900 text-white font-semibold text-sm hover:bg-sky-950 active:bg-black disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-md"
+                >
+                  {generatingAdditional ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Đang tải...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      </svg>
+                      {selectedAdditional.size > 0 ? `Tải xuống (${selectedAdditional.size})` : "Hoàn thành"}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

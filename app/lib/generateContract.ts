@@ -578,3 +578,318 @@ export async function generateDepositContract(
 
   return Packer.toBlob(doc);
 }
+
+// ─── Appendix to Contract (Phụ lục hợp đồng) ────────────────────────────────
+
+export async function generateAppendix(
+  cccd: Partial<CccdData>,
+  d: ContractDetails
+): Promise<Blob> {
+  const [ngayKy, thangKy, namKy] = [
+    val(d.ngayKy, "……"),
+    val(d.thangKy, "……"),
+    val(d.namKy, "202……"),
+  ];
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: { margin: { top: cm(2), right: cm(2), bottom: cm(2), left: cm(3) } },
+        },
+        children: [
+          par("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", { bold: true, center: true, size: SZ_TITLE }),
+          par("Độc lập – Tự do – Hạnh phúc", { bold: true, center: true, italic: true }),
+          par("──────────────────────────", { center: true }),
+          blank(),
+          par("PHỤ LỤC HỢP ĐỒNG THUÊ NHÀ", { bold: true, center: true, size: SZ_TITLE, underline: true }),
+          blank(),
+          mixedPar([
+            { text: "Kèm theo Hợp đồng thuê nhà ký ngày " },
+            { text: ngayKy, bold: true },
+            { text: " tháng " },
+            { text: thangKy, bold: true },
+            { text: " năm " },
+            { text: namKy, bold: true },
+          ]),
+          blank(),
+          par("Phụ lục này quy định thêm các chi tiết về bảng kê thiết bị, điều khoản bổ sung và thỏa thuận đặc biệt giữa hai bên:"),
+          blank(),
+
+          article(1, "BẢNG KÊ THIẾT BỊ VÀ TÀI SẢN"),
+          par("1.1. Thiết bị trong phòng ở:"),
+          par("Giường, tủ quần áo, bàn, ghế, đèn, quạt/điều hòa (nếu có), …………………………", { indent: cm(0.75) }),
+          blank(),
+          par("1.2. Thiết bị vệ sinh:"),
+          par("Đèn, chậu rửa, vòi hoa sen, bồn cầu, vòi xịt, giá xà phòng, gương soi, ……………", { indent: cm(0.75) }),
+          blank(),
+          par("1.3. Tình trạng thiết bị khi bàn giao:"),
+          par("Tất cả thiết bị được bàn giao trong tình trạng hoạt động bình thường. Bên B tự chịu trách nhiệm sửa chữa các hư hỏng do sử dụng hoặc do lỗi của bên B gây ra.", { indent: cm(0.75) }),
+          blank(),
+
+          article(2, "ĐIỀU KHOẢN BỔ SUNG"),
+          par("2.1. Những điều khoản được thêm vào hoặc sửa đổi so với hợp đồng chính:"),
+          par("…………………………………………………………………………………………………", { indent: cm(0.75) }),
+          par("…………………………………………………………………………………………………", { indent: cm(0.75) }),
+          blank(),
+          par("2.2. Các bên cùng thỏa thuận các điều khoản riêng biệt như sau:"),
+          par("…………………………………………………………………………………………………", { indent: cm(0.75) }),
+          blank(),
+
+          article(3, "THỎA THUẬN ĐẶC BIỆT"),
+          par("Hai bên cam kết tuân thủ phụ lục này như một phần không thể tách rời của Hợp đồng thuê nhà chính."),
+          blank(),
+          blank(),
+
+          new Paragraph({
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [
+              new TextRun({ text: "         ĐẠI DIỆN BÊN A", bold: true, font: FONT, size: SZ }),
+              new TextRun({ text: "                                        ĐẠI DIỆN BÊN B", bold: true, font: FONT, size: SZ }),
+            ],
+          }),
+          blank(), blank(), blank(),
+          new Paragraph({
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [
+              new TextRun({ text: `         ${val(d.benA_ten, "YOUNG HOUSE")}`, bold: true, font: FONT, size: SZ }),
+              new TextRun({ text: `                                        ${val(cccd.hoTen)}`, font: FONT, size: SZ }),
+            ],
+          }),
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBlob(doc);
+}
+
+// ─── Fire Safety Commitment (Cam kết PCCC) ────────────────────────────────────
+
+export async function generateFireSafetyCommitment(
+  cccd: Partial<CccdData>,
+  d: ContractDetails
+): Promise<Blob> {
+  const [ngayKy, thangKy, namKy] = [
+    val(d.ngayKy, "……"),
+    val(d.thangKy, "……"),
+    val(d.namKy, "202……"),
+  ];
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: { margin: { top: cm(2), right: cm(2), bottom: cm(2), left: cm(3) } },
+        },
+        children: [
+          par("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", { bold: true, center: true, size: SZ_TITLE }),
+          par("Độc lập – Tự do – Hạnh phúc", { bold: true, center: true, italic: true }),
+          par("──────────────────────────", { center: true }),
+          blank(),
+          par("CAM KẾT AN TOÀN PHÒNG CHÁY CHỮA CHÁY", { bold: true, center: true, size: SZ_TITLE, underline: true }),
+          blank(),
+          mixedPar([
+            { text: "Ngày " },
+            { text: ngayKy, bold: true },
+            { text: " tháng " },
+            { text: thangKy, bold: true },
+            { text: " năm " },
+            { text: namKy, bold: true },
+          ]),
+          blank(),
+
+          par("TÔI CAM KẾT THỰC HIỆN AN TOÀN PHÒNG CHÁY CHỮA CHÁY", { bold: true, center: true }),
+          blank(),
+
+          mixedPar([
+            { text: "Tôi là " },
+            { text: val(cccd.hoTen), bold: true },
+            { text: ", số CCCD/CMND: " },
+            { text: val(cccd.soCanCuoc), bold: true },
+            { text: ", hiện thuê tại phòng " },
+            { text: val(d.soPhong, "YH11-……"), bold: true },
+          ]),
+
+          blank(),
+          par("Cam kết tuân thủ các quy tắc an toàn PCCC sau:"),
+          blank(),
+
+          article(1, "KHÔNG ĐƯỢC PHÉP"),
+          par("1.1. Sử dụng bếp ga, bếp điện không được phép trong phòng (trừ bếp điện để hâm nóng nước có an toàn).", { indent: cm(0.75) }),
+          par("1.2. Thắp sáng bằng nến hoặc sử dụng đèn dầu trong phòng.", { indent: cm(0.75) }),
+          par("1.3. Để các vật dụng dễ cháy gần các nguồn nhiệt như điều hòa, đèn, ấm nước, ……", { indent: cm(0.75) }),
+          par("1.4. Làm hỏng hay chặn lối thoát hiểm, lối đi, cửa hành lang, cầu thang.", { indent: cm(0.75) }),
+          par("1.5. Sửa chữa, tháo dỡ hoặc che phủ các thiết bị PCCC (bình cứu hỏa, hộp cứu hỏa, …).", { indent: cm(0.75) }),
+          par("1.6. Sử dụng điện bất kỳ cách nào có thể gây chập cháy (sử dụng ổ cắm quá tải, dây điện bại, …).", { indent: cm(0.75) }),
+          blank(),
+
+          article(2, "PHẢI THỰC HIỆN"),
+          par("2.1. Kiểm tra và đảm bảo các thiết bị điện, đèn, quạt hoạt động bình thường.", { indent: cm(0.75) }),
+          par("2.2. Tắt tất cả các thiết bị điện trước khi rời phòng.", { indent: cm(0.75) }),
+          par("2.3. Ngay lập tức báo cho chủ nhà khi phát hiện các dấu hiệu nguy hiểm (mùi cháy, khói, lửa, …).", { indent: cm(0.75) }),
+          par("2.4. Hợp tác với ban quản lý trong các cuộc kiểm tra PCCC định kỳ.", { indent: cm(0.75) }),
+          par("2.5. Nắm rõ lối thoát hiểm và biết cách sử dụng bình cứu hỏa cơ bản.", { indent: cm(0.75) }),
+          blank(),
+
+          article(3, "TRÁCH NHIỆM"),
+          par("Tôi hiểu rằng bất kỳ vi phạm nào về an toàn PCCC có thể gây ra hậu quả nguy hiểm cho tính mạng và tài sản của mình và cộng đồng. Tôi sẽ tự chịu hoàn toàn trách nhiệm pháp lý nếu hành động của tôi gây ra cháy nổ hoặc các sự cố PCCC."),
+          blank(),
+          blank(),
+
+          new Paragraph({
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [
+              new TextRun({ text: "Tôi xác nhận rằng đã đọc và hiểu toàn bộ nội dung cam kết này", font: FONT, size: SZ }),
+            ],
+          }),
+          blank(), blank(), blank(),
+
+          new Paragraph({
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [
+              new TextRun({ text: "CHỮ KÝ NGƯỜI THUÊ", bold: true, font: FONT, size: SZ }),
+              new TextRun({ text: "                    CHỮ KÝ CHỦ NHÀ", bold: true, font: FONT, size: SZ }),
+            ],
+          }),
+          blank(), blank(), blank(),
+          new Paragraph({
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [
+              new TextRun({ text: `${val(cccd.hoTen)}`, font: FONT, size: SZ }),
+              new TextRun({ text: `                        ${val(d.benA_ten, "YOUNG HOUSE")}`, font: FONT, size: SZ }),
+            ],
+          }),
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBlob(doc);
+}
+
+// ─── House Rules Commitment (Cam kết nội quy) ──────────────────────────────────
+
+export async function generateHouseRulesCommitment(
+  cccd: Partial<CccdData>,
+  d: ContractDetails
+): Promise<Blob> {
+  const [ngayKy, thangKy, namKy] = [
+    val(d.ngayKy, "……"),
+    val(d.thangKy, "……"),
+    val(d.namKy, "202……"),
+  ];
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: { margin: { top: cm(2), right: cm(2), bottom: cm(2), left: cm(3) } },
+        },
+        children: [
+          par("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", { bold: true, center: true, size: SZ_TITLE }),
+          par("Độc lập – Tự do – Hạnh phúc", { bold: true, center: true, italic: true }),
+          par("──────────────────────────", { center: true }),
+          blank(),
+          par("CAM KẾT TUÂN THỦ NỘI QUY TÒA NHÀ", { bold: true, center: true, size: SZ_TITLE, underline: true }),
+          blank(),
+          mixedPar([
+            { text: "Ngày " },
+            { text: ngayKy, bold: true },
+            { text: " tháng " },
+            { text: thangKy, bold: true },
+            { text: " năm " },
+            { text: namKy, bold: true },
+          ]),
+          blank(),
+
+          par("TÔI CAM KẾT TUÂN THỦ NỘI QUY TÒA NHÀ VÀ KHUÔN VIÊN", { bold: true, center: true }),
+          blank(),
+
+          mixedPar([
+            { text: "Tôi là " },
+            { text: val(cccd.hoTen), bold: true },
+            { text: ", số CCCD/CMND: " },
+            { text: val(cccd.soCanCuoc), bold: true },
+            { text: ", hiện thuê tại phòng " },
+            { text: val(d.soPhong, "YH11-……"), bold: true },
+          ]),
+
+          blank(),
+          par("Cam kết tuân thủ các nội quy sau:"),
+          blank(),
+
+          article(1, "VỆ SINH CÁ NHÂN VÀ CHUNG"),
+          par("1.1. Giữ gìn sạch sẽ phòng của mình, bao gồm sàn, tường, cửa sổ, nhà vệ sinh.", { indent: cm(0.75) }),
+          par("1.2. Không để rác, đồ dơ bẩn bên ngoài phòng hoặc trên hành lang.", { indent: cm(0.75) }),
+          par("1.3. Không phơi quần áo hoặc các vật dụng khác ra ngoài cửa sổ, hành lang.", { indent: cm(0.75) }),
+          par("1.4. Giữ gìn vệ sinh các khu vực chung như hành lang, cầu thang, nhà tắm chung.", { indent: cm(0.75) }),
+          blank(),
+
+          article(2, "TIẾNG ỒN VÀ HOẠT ĐỘNG HÀNG NGÀY"),
+          par("2.1. Không gây tiếng ồn sau 22 giờ tối cho đến 6 giờ sáng hôm sau.", { indent: cm(0.75) }),
+          par("2.2. Không tổ chức tiệc tùng, tụ tập, hát karaoke hay các hoạt động ồn ào.", { indent: cm(0.75) }),
+          par("2.3. Giữ âm lượng ti vi, nhạc ở mức thấp để không làm phiền hàng xóm.", { indent: cm(0.75) }),
+          par("2.4. Không sử dụng các loại máy móc hay công cụ có tiếng ồn vào ban đêm.", { indent: cm(0.75) }),
+          blank(),
+
+          article(3, "KHÁCH VÀ NGƯỜI Ở CÙNG"),
+          par("3.1. Thông báo cho chủ nhà trước khi có khách ở lại đêm.", { indent: cm(0.75) }),
+          par("3.2. Khách chỉ được ở tối đa 1 đêm mà không cần thông báo trước.", { indent: cm(0.75) }),
+          par("3.3. Từ đêm thứ 2 trở đi, phí dịch vụ khách là 50.000 đồng/khách/đêm.", { indent: cm(0.75) }),
+          par("3.4. Không cho phép người lạ ở lại hoặc sử dụng phòng khi tôi vắng mặt.", { indent: cm(0.75) }),
+          blank(),
+
+          article(4, "SỬ DỤNG CÁC TIỆN ÍCH CHUNG"),
+          par("4.1. Sử dụng tiện ích chung một cách hợp lý và không độc chiếm.", { indent: cm(0.75) }),
+          par("4.2. Trả lại các vật dụng chung đúng nơi sau khi sử dụng.", { indent: cm(0.75) }),
+          par("4.3. Báo ngay khi phát hiện hư hỏng ở các tiện ích chung.", { indent: cm(0.75) }),
+          blank(),
+
+          article(5, "HÀNH LANG VÀ KHÔNG GIAN CHUNG"),
+          par("5.1. Không để đồ đạc, giày dép, xe máy hoặc bất kỳ vật dụng nào trên hành lang.", { indent: cm(0.75) }),
+          par("5.2. Hành lang phải luôn sạch sẽ và không bị chiếm dụng.", { indent: cm(0.75) }),
+          par("5.3. Hành lang là lối thoát hiểm, không được bao giờ bị chặn.", { indent: cm(0.75) }),
+          blank(),
+
+          article(6, "TÀI CHÍNH VÀ TRÁCH NHIỆM"),
+          par("6.1. Thanh toán tiền thuê, điện, nước, phí quản lý đúng hạn.", { indent: cm(0.75) }),
+          par("6.2. Trả tiền mặt hoặc chuyển khoản theo quy định.", { indent: cm(0.75) }),
+          par("6.3. Chịu trách nhiệm bồi thường các hư hỏng do chính tôi gây ra.", { indent: cm(0.75) }),
+          blank(),
+
+          article(7, "VI PHẠM VÀ HÌNH PHẠT"),
+          par("Vi phạm các nội quy trên sẽ bị xử lý theo mức độ vi phạm, có thể bị phạt tiền, cảnh báo, hoặc đơn phương chấm dứt hợp đồng mà không được trả lại tiền đặt cọc."),
+          blank(),
+          blank(),
+
+          new Paragraph({
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [
+              new TextRun({ text: "Tôi xác nhận rằng đã đọc, hiểu và đồng ý tuân thủ các nội quy trên", font: FONT, size: SZ }),
+            ],
+          }),
+          blank(), blank(), blank(),
+
+          new Paragraph({
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [
+              new TextRun({ text: "CHỮ KÝ NGƯỜI THUÊ", bold: true, font: FONT, size: SZ }),
+              new TextRun({ text: "                    CHỮ KÝ CHỦ NHÀ", bold: true, font: FONT, size: SZ }),
+            ],
+          }),
+          blank(), blank(), blank(),
+          new Paragraph({
+            spacing: { line: 360, lineRule: LineRuleType.AUTO, after: 0 },
+            children: [
+              new TextRun({ text: `${val(cccd.hoTen)}`, font: FONT, size: SZ }),
+              new TextRun({ text: `                        ${val(d.benA_ten, "YOUNG HOUSE")}`, font: FONT, size: SZ }),
+            ],
+          }),
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBlob(doc);
+}
